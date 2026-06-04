@@ -1,0 +1,79 @@
+\appendix
+\section{Gramática libre de contexto completa}
+\label{ap:cfg-completa}
+
+Esta sección presenta la \textbf{CFG completa} del subconjunto de Python/Triton implementado en \texttt{parser/parser.y}. Cada producción corresponde a una regla yacc sin las acciones semánticas en C. Las producciones vacías del analizador se denotan como \texttt{epsilon} ($\varepsilon$).
+
+\textbf{Convenciones:}
+\begin{itemize}
+  \item \texttt{ID}, \texttt{INT}, \texttt{FLOAT}, \texttt{STRING} $\equiv$ \texttt{TOKEN\_IDENTIFIER}, \texttt{TOKEN\_INTEGER}, \texttt{TOKEN\_FLOAT}, \texttt{TOKEN\_STRING}.
+  \item \texttt{OP} $\equiv$ \texttt{TOKEN\_OPERATOR} (p.\,ej.\ lexema \texttt{=}, \texttt{+}, \texttt{*}).
+  \item \texttt{DELIM} $\equiv$ \texttt{TOKEN\_DELIMITER} cuando el léxico clasifica un símbolo como delimitador en expresiones.
+  \item \texttt{NEWLINE}, \texttt{INDENT}, \texttt{DEDENT} $\equiv$ tokens 950, 910 y 911 (sintéticos desde \texttt{WS\_COUNT}).
+  \item \texttt{KW\_*} son terminales de palabra reservada (\texttt{def}, \texttt{if}, \texttt{import}, \texttt{None}, etc.).
+  \item Paréntesis, corchetes, dos puntos, coma y punto son literales en la gramática yacc.
+\end{itemize}
+
+\subsection{Terminales del analizador}
+\begin{table}[H]
+\centering
+\caption{Conjunto de terminales (yacc / reporte léxico).}
+\label{tab:terminales-cfg}
+\small
+\begin{tabular}{@{}clp{6.8cm}@{}}
+\toprule
+\textbf{Símbolo} & \textbf{ID} & \textbf{Descripción} \\
+\midrule
+\texttt{ID} & 100 & Identificadores \\
+\texttt{KW\_*} & 101 & Palabras reservadas (\texttt{def}, \texttt{if}, \texttt{for}, \ldots) \\
+\texttt{INT} & 200 & Enteros \\
+\texttt{FLOAT} & 300 & Flotantes \\
+\texttt{STRING} & 400 & Cadenas \\
+\texttt{OP} & 500 & Operadores \\
+\texttt{DELIM} & 600 & Delimitadores léxicos \\
+\texttt{COMMENT} & 700 & Comentarios (descartados en parseo) \\
+\texttt{INDENT} & 910 & Inicio de bloque indentado \\
+\texttt{DEDENT} & 911 & Fin de bloque indentado \\
+\texttt{NEWLINE} & 950 & Fin de línea \\
+\texttt{'@'}, \texttt{'.'}, \texttt{'('}, \texttt{')'}, \texttt{'['}, \texttt{']'}, \texttt{':'}, \texttt{','} & --- & Literales en reglas yacc \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Precedencia y asociatividad (yacc)}
+Las ambigüedades de expresiones y de la regla \texttt{if}--\texttt{else} se resuelven con las directivas de \texttt{parser.y} (de menor a mayor precedencia en la pila):
+
+\begin{table}[H]
+\centering
+\caption{Orden de precedencia (\texttt{\%left} / \texttt{\%nonassoc}).}
+\label{tab:precedencia-cfg}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Precedencia} & \textbf{Asociatividad} & \textbf{Terminales} \\
+\midrule
+1 (más baja) & izquierda & \texttt{NEWLINE} \\
+2 & izquierda & \texttt{KW\_OR} \\
+3 & izquierda & \texttt{KW\_AND} \\
+4 & no asoc. & \texttt{KW\_NOT} \\
+5 & izquierda & \texttt{OP}, \texttt{DELIM} (en \texttt{expr}) \\
+6 & no asoc. & \texttt{KW\_ELIF} \\
+7 (más alta) & no asoc. & \texttt{KW\_ELSE} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Producciones (33 no terminales)}
+El listado siguiente agrupa las \textbf{33 reglas no terminales} de la implementación: \texttt{program}, \texttt{opt\_newlines}, \texttt{top\_block}, \texttt{top\_line}, \texttt{stmt}, \texttt{import\_stmt}, \texttt{import\_name}, \texttt{opt\_as}, \texttt{triton\_decorator}, \texttt{opt\_triton\_decorator}, \texttt{def\_stmt}, \texttt{param\_list\_opt}, \texttt{param\_list}, \texttt{param}, \texttt{suite}, \texttt{block\_body}, \texttt{block\_stmt}, \texttt{simple\_stmt}, \texttt{assign\_stmt}, \texttt{if\_stmt}, \texttt{elif\_parts}, \texttt{else\_part}, \texttt{while\_stmt}, \texttt{for\_stmt}, \texttt{return\_stmt}, \texttt{pass\_stmt}, \texttt{expr\_stmt}, \texttt{expr}, \texttt{opt\_expr}, \texttt{subscript\_list}, \texttt{subscript}, \texttt{unary\_expr}, \texttt{member\_chain}, \texttt{call\_expr}, \texttt{arg\_list\_opt}, \texttt{arg\_list}, \texttt{arg}.
+
+\lstinputlisting[
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny,
+  caption={CFG completa del lenguaje \texttt{.tri} (archivo \texttt{report/cfg/triton\_cfg.bnf}).},
+  label={lst:cfg-completa}
+]{cfg/triton_cfg.bnf}
+
+\subsection{Trazabilidad CFG $\rightarrow$ implementación}
+La gramática de este apéndice es la referencia formal del entregable; la implementación ejecutable está en \texttt{parser/parser.y} (reglas entre las marcas \texttt{\%\%}). Cualquier cambio en yacc debe reflejarse en \texttt{triton\_cfg.bnf} para mantener consistencia documental.

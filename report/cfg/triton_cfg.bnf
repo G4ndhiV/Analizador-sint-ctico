@@ -1,0 +1,143 @@
+% CFG completa - analizador sintactico Triton (.tri)
+% Correspondencia 1:1 con parser/parser.y (producciones sin acciones semanticas)
+% Notacion: A -> alpha | beta ; epsilon = produccion vacia
+
+% --- Programa y bloques ---
+program         -> opt_newlines top_block opt_newlines
+
+opt_newlines    -> epsilon
+                | opt_newlines NEWLINE
+
+top_block       -> epsilon
+                | top_block top_line
+
+top_line        -> stmt
+                | stmt NEWLINE
+
+suite           -> simple_stmt
+                | opt_newlines INDENT block_body DEDENT
+
+block_body      -> epsilon
+                | block_body block_stmt
+
+block_stmt      -> stmt
+                | block_body NEWLINE
+                | block_body NEWLINE stmt
+
+simple_stmt     -> stmt
+
+% --- Sentencias ---
+stmt            -> import_stmt
+                | def_stmt
+                | assign_stmt
+                | if_stmt
+                | while_stmt
+                | for_stmt
+                | return_stmt
+                | pass_stmt
+                | expr_stmt
+
+import_stmt     -> KW_IMPORT import_name opt_as
+
+import_name     -> ID
+                | import_name '.' ID
+
+opt_as          -> epsilon
+                | KW_AS ID
+
+triton_decorator -> '@' ID '.' ID
+
+opt_triton_decorator -> epsilon
+                     | triton_decorator opt_newlines
+
+def_stmt        -> opt_triton_decorator KW_DEF ID '(' param_list_opt ')' ':' suite
+
+assign_stmt     -> ID OP expr
+% Nota: OP con lexema '=' actualiza symtab (asignacion)
+
+if_stmt         -> KW_IF expr ':' suite elif_parts else_part
+
+elif_parts      -> epsilon
+                | elif_parts KW_ELIF expr ':' suite
+
+else_part       -> epsilon
+                | KW_ELSE ':' suite
+
+while_stmt      -> KW_WHILE expr ':' suite
+
+for_stmt        -> KW_FOR ID KW_IN expr ':' suite
+
+return_stmt     -> KW_RETURN expr
+                | KW_RETURN
+
+pass_stmt       -> KW_PASS
+
+expr_stmt       -> expr
+
+% --- Parametros de funcion ---
+param_list_opt  -> epsilon
+                | param_list
+
+param_list      -> param
+                | param_list ',' param
+
+param           -> ID
+                | ID ':' expr
+
+% --- Expresiones ---
+expr            -> INT
+                | FLOAT
+                | STRING
+                | ID
+                | ID member_chain
+                | KW_NONE
+                | KW_TRUE
+                | KW_FALSE
+                | expr OP expr
+                | expr DELIM expr
+                | '(' arg_list_opt ')'
+                | '[' expr ']'
+                | '[' expr ':' expr ']'
+                | '[' expr ':' expr ',' expr ']'
+                | expr '[' subscript_list ']'
+                | call_expr
+                | unary_expr
+
+opt_expr        -> epsilon
+                | expr
+
+unary_expr      -> OP expr
+
+member_chain    -> '.' ID
+                | member_chain '.' ID
+                | DELIM ID
+                | member_chain DELIM ID
+
+call_expr       -> ID '(' arg_list_opt ')'
+                | ID member_chain '(' arg_list_opt ')'
+                | ID '(' ')'
+
+subscript_list  -> subscript
+                | subscript_list ',' subscript
+
+subscript       -> expr
+                | KW_NONE
+                | ':' opt_expr
+                | opt_expr ':' opt_expr
+                | opt_expr ':' opt_expr ':' opt_expr
+
+arg_list_opt    -> epsilon
+                | arg_list
+
+arg_list        -> arg
+                | arg_list ',' arg
+
+arg             -> expr
+                | ID '=' expr
+
+% --- Leyenda de terminales (alias en este listado) ---
+% ID=TOKEN_IDENTIFIER  INT=TOKEN_INTEGER  FLOAT=TOKEN_FLOAT  STRING=TOKEN_STRING
+% OP=TOKEN_OPERATOR    DELIM=TOKEN_DELIMITER
+% NEWLINE=TOKEN_NEWLINE  INDENT=TOKEN_INDENT  DEDENT=TOKEN_DEDENT
+% '(' ')' '[' ']' ':' ',' '.' '@' = literales en parser.y
+% KW_* = palabras reservadas reconocidas por el lexer (def, if, import, ...)

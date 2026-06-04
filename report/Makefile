@@ -6,7 +6,7 @@ TECTONIC ?= $(shell command -v tectonic 2>/dev/null || echo /opt/homebrew/bin/te
 
 pdf: $(PDF)
 
-$(PDF): $(MAIN) preamble.tex sections/*.tex
+$(PDF): $(MAIN) preamble.tex sections/*.tex cfg/triton_cfg.bnf
 	@if [ -f ../results/parser/summary.json ]; then \
 		../scripts/capture_outputs.sh; \
 	fi

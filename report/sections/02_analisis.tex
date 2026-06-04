@@ -18,8 +18,10 @@
   \item Actualizar symtab: imports, funciones, parámetros, variables.
 \end{itemize}
 
-\subsection{CFG final (extracto completo)}
-\begin{lstlisting}[caption={CFG del lenguaje .tri (Triton kernel subset)}]
+\subsection{CFG (resumen)}
+La gramática formal completa (33 no terminales, todas las producciones de \texttt{parser.y}) se documenta en el \textbf{Apéndice~\ref{ap:cfg-completa}} (Listado~\ref{lst:cfg-completa}). El siguiente extracto resume las construcciones principales para lectura rápida en el análisis.
+
+\begin{lstlisting}[caption={CFG resumida del lenguaje .tri (Triton kernel subset)}]
 program       -> opt_newlines top_block opt_newlines
 top_block     -> top_block top_line | epsilon
 top_line      -> stmt | stmt NEWLINE
