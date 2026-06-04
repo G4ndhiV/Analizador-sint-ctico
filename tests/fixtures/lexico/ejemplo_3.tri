@@ -1,0 +1,11 @@
+acumulador = 8
+acumulador += 2
+acumulador -= 1
+acumulador *= 3
+acumulador /= 2
+acumulador %= 5
+mascara_bits = ~acumulador
+desplazamiento_izq = acumulador << 1
+desplazamiento_der = acumulador >> 1
+termino_potencia = acumulador ** 2
+ruta_enlace = nodo_origen->nodo_destino

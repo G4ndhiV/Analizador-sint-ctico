@@ -1,0 +1,3 @@
+@triton
+def kernel(x):
+    pass

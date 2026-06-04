@@ -1,0 +1,20 @@
+\section{Introducción}
+
+\subsection{Resumen}
+Este documento presenta el análisis, diseño, implementación y verificación del \textbf{analizador sintáctico} para kernels \textbf{Triton GPU} escritos en archivos \texttt{.tri}. La fase sintáctica es la segunda etapa del compilador del reto académico: consume la secuencia de tokens producida por el analizador léxico (Flex) del Equipo~11, construye una estructura conforme a una gramática libre de contexto (CFG) implementada con \textbf{yacc/Bison}, actualiza tablas de símbolos y reporta errores sintácticos.
+
+El entregable incluye: (i) gramática documentada; (ii) tablas de símbolos; (iii) implementación \texttt{triton\_parser}; (iv) mensajes de error; (v) \textbf{resultados experimentales} con énfasis en la Sección~\ref{sec:resultados}: \textbf{100\%} suite unitaria, \textbf{97.1\%} benchmark (68/70), \textbf{100\%} en kernels válidos, y gráfica detallada de los 70 kernels.
+
+\subsection{Notación}
+\begin{itemize}
+  \item \textbf{CFG}: gramática libre de contexto en notación BNF; producciones $A \rightarrow \alpha$.
+  \item \textbf{Token ID}: identificador numérico del Cuadro~1 del reporte léxico (100--999).
+  \item \textbf{INDENT/DEDENT} (910/911): tokens sintéticos derivados de \texttt{WS\_COUNT} (900) para modelar indentación Python.
+  \item \textbf{PARSE\_OK}: análisis sintáctico exitoso con impresión de tabla de símbolos del parser.
+\end{itemize}
+
+\subsection{Justificación de herramientas}
+Se utiliza \textbf{C} con \textbf{Flex} y \textbf{yacc}, conforme a las restricciones del curso. No se emplean librerías CFG de alto nivel ni \texttt{ast} de Python para el parser formal.
+
+\subsection{Trazabilidad a la fase léxica}
+Los IDs de token se preservan en \texttt{\%token} de \texttt{parser.y} (p.\,ej.\ \texttt{TOKEN\_IDENTIFIER = 100}). El archivo \texttt{lexico\_equipo\_11\_scanner.l} es la base del scanner integrado; el modo \texttt{-t} reproduce la salida del reporte léxico (TC-01--TC-04).

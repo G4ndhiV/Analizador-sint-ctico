@@ -1,0 +1,18 @@
+# Build y entorno
+build/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# LaTeX generado
+report/*.aux
+report/*.log
+report/*.out
+report/*.fls
+report/*.fdb_latexmk
+report/main.pdf
+
+# Logs regenerables (se conservan summary.json)
+results/benchmark/*.log
+results/parser/*.log

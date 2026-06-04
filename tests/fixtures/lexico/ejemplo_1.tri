@@ -1,0 +1,8 @@
+import triton as tl
+def kernel(chilaquil_power, hambre_level):
+
+    # ejemplo de chilaquil
+    salsa_roja = 10
+    cumbia_factor = 3.14e+2
+    if salsa_roja >= hambre_level:
+        return "al_tiro"

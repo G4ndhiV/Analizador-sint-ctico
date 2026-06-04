@@ -1,0 +1,9 @@
+import expediente_agencia as agente_47
+
+def evaluar_infiltracion(nivel_alerta, densidad_seguridad):
+    if nivel_alerta >= densidad_seguridad:
+        return True
+    elif nivel_alerta < densidad_seguridad:
+        return False
+    else:
+        return None

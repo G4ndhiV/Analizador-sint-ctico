@@ -1,0 +1,52 @@
+\section{Implementación}
+
+\subsection{Estructura del proyecto}
+\begin{verbatim}
+analizador-sintactico/
+  lexer/lexico_equipo_11_scanner.l
+  parser/parser.y, symtab.c, symtab.h
+  src/driver.c
+  build/triton_parser
+  tests/{valid,invalid}/  results/{parser,benchmark}/
+  figures/benchmark_parse_results.pdf
+\end{verbatim}
+
+\subsection{Compilación y ejecución}
+\begin{verbatim}
+make build
+make test          # 11 casos unitarios
+make benchmark     # 70 kernels TRITONHEAL
+make figures       # grafica de resultados
+make pdf           # este reporte
+./build/triton_parser archivo.tri
+./build/triton_parser -t archivo.tri   # modo solo lexico
+\end{verbatim}
+
+\subsection{Fragmento: integración de indentación (lexer)}
+\lstinputlisting[language=C, firstline=230, lastline=280, caption={Pila de indentación y \texttt{yylex} wrapper.}]{../lexer/lexico_equipo_11_scanner.l}
+
+\subsection{Fragmento: reglas principales (yacc)}
+\lstinputlisting[language=C, firstline=70, lastline=145, caption={Producciones \texttt{program}, \texttt{stmt}, \texttt{def\_stmt} (extracto).}]{../parser/parser.y}
+
+\subsection{Fragmento: tabla de símbolos}
+\lstinputlisting[language=C, firstline=1, lastline=75, caption={Estructuras e inserción en symtab (extracto).}]{../parser/symtab.c}
+
+\subsection{Fragmento: manejo de errores}
+\lstinputlisting[language=C, firstline=320, lastline=335, caption={Función \texttt{yyerror}.}]{../parser/parser.y}
+
+\subsection{Ejemplo de salida del parser (entregable 5)}
+Al analizar \texttt{triton\_kernel\_min.tri}:
+\begin{verbatim}
+PARSE_OK: archivo '...' sintacticamente valido.
+
+=== PARSER SYMBOL TABLE ===
+--- IMPORTS ---
+1  line=2  module=triton  alias=-
+2  line=2  module=triton.language  alias=tl
+--- FUNCTIONS ---
+1  line=5  name=add_kernel  arity=5  triton_jit=1
+--- PARAMETERS ---
+...
+=== SYMBOL TABLE: IDENTIFIERS ===
+...
+\end{verbatim}

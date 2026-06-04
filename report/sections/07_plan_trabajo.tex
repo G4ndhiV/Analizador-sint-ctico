@@ -1,0 +1,26 @@
+\section{Plan de Trabajo}
+
+\begin{table}[H]
+\centering
+\caption{Cronograma de la fase sintáctica (Equipo 11).}
+\begin{tabular}{@{}cll@{}}
+\toprule
+Fase & Actividad & Entregable \\
+\midrule
+1 & Revisión tokens léxicos y kernels TRITONHEAL & Inventario de requisitos \\
+2 & Diseño CFG + resolución indentación & Documento de análisis \\
+3 & Especificación yacc + symtab & \texttt{parser.y}, \texttt{symtab.c} \\
+4 & Integración Flex--yacc + driver & \texttt{triton\_parser} \\
+5 & Suite de pruebas + benchmark 70 & \texttt{tests/}, \texttt{results/} \\
+6 & Reporte IEEE-830 + gráfica & PDF final \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Distribución de responsabilidades}
+\begin{itemize}
+  \item Gramática y yacc: análisis conjunto del equipo, implementación en \texttt{parser.y}.
+  \item Lexer integrado: extensión de \texttt{lexico\_equipo\_11\_scanner.l}.
+  \item Pruebas y benchmark: scripts \texttt{run\_tests.sh}, \texttt{run\_benchmark\_kernels.sh}.
+  \item Reporte y figuras: \LaTeX{} + \texttt{plot\_benchmark\_results.py}.
+\end{itemize}

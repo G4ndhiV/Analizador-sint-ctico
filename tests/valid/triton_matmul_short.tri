@@ -1,0 +1,12 @@
+import triton
+import triton.language as tl
+
+@triton.jit
+def matmul_short(a_ptr, b_ptr, c_ptr, M, N, K, BLOCK: tl.constexpr):
+    pid_m = tl.program_id(0)
+    rm = pid_m * BLOCK + tl.arange(0, BLOCK)
+    acc = tl.zeros((BLOCK, BLOCK))
+    for k in range(0, K, BLOCK):
+        a = tl.load(a_ptr + rm + k)
+        acc += tl.dot(a, a)
+    tl.store(c_ptr + rm, acc)

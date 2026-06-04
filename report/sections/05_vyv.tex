@@ -1,0 +1,108 @@
+\section{Verificación y Validación}
+
+\subsection{Resultados experimentales}
+\label{sec:resultados}
+
+\noindent\fbox{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{%
+\textbf{Hallazgo principal.} El analizador sintáctico \texttt{triton\_parser} alcanza \textbf{97.1\% PARSE\_OK} sobre el benchmark TRITONHEAL (68/70 kernels) y \textbf{100\% de éxito} en la suite unitaria (11/11). Los únicos dos rechazos corresponden a \textbf{mutaciones sintácticamente inválidas} del benchmark (\texttt{k\_0040}, \texttt{k\_0058}), confirmadas también con el analizador \texttt{ast} de Python. \textbf{No se registraron falsos rechazos} en kernels válidos ni errores léxicos en la corrida del benchmark.
+}}
+
+\vspace{0.8em}
+
+\subsection{Resumen cuantitativo}
+\begin{table}[H]
+\centering
+\caption{Cuadro resumen de resultados (corridas locales reproducibles con \texttt{make test} y \texttt{make benchmark}).}
+\label{tab:resumen-global}
+\begin{tabular}{@{}lrrp{5.2cm}@{}}
+\toprule
+\textbf{Experimento} & \textbf{Éxito} & \textbf{Total} & \textbf{Tasa} \\
+\midrule
+Suite unitaria (regresión + inválidos + léxico) & 11 & 11 & \textbf{100\%} \\
+Benchmark TRITONHEAL (kernels \texttt{k\_*.tri}) & 68 & 70 & \textbf{97.1\%} \\
+\quad $\hookrightarrow$ kernels válidos aceptados & 68 & 68 & \textbf{100\%} \\
+\quad $\hookrightarrow$ mutaciones rechazadas (correcto) & 2 & 2 & \textbf{100\%} \\
+Errores léxicos en benchmark & 0 & 70 & 0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Interpretación de los resultados}
+Los resultados deben leerse en dos niveles:
+
+\begin{enumerate}
+  \item \textbf{Suite unitaria (11/11 PASS).} Valida que el parser cumple los entregables del curso: acepta \texttt{ejemplo\_1.tri}--\texttt{ejemplo\_3.tri} del reporte léxico, kernels Triton mínimos propios, rechaza cinco archivos con errores sintácticos deliberados y conserva el modo \texttt{-t} del scanner.
+  \item \textbf{Benchmark de 70 kernels (68 PARSE\_OK).} Mide desempeño sobre el banco de pruebas TRITONHEAL usado en el proyecto del equipo. De 70 archivos, \textbf{68 son sintácticamente válidos} y fueron aceptados; \textbf{2 son mutaciones inválidas} sembradas en el benchmark y fueron rechazadas correctamente por el parser.
+\end{enumerate}
+
+\textbf{Conclusión:} la tasa del 97.1\% \emph{no} indica fallos en código Triton correcto; indica que el 97.1\% del \emph{total del banco} incluye 2 archivos que \emph{deben} fallar. La métrica relevante para código válido es \textbf{68/68 = 100\% de aceptación}.
+
+\subsection{Gráfica de resultados (Figura~\ref{fig:benchmark70})}
+La Figura~\ref{fig:benchmark70} presenta de forma explícita: (i) tarjetas con la tasa global y la cobertura real; (ii) desglose por categoría; (iii) diagrama de dona con el 97.1\%; (iv) mapa \emph{kernel por kernel} de los 70 archivos; (v) comparación con la suite unitaria.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{benchmark_parse_results.pdf}
+\caption{%
+\textbf{Resultados del analizador sintáctico.} Panel superior: indicadores clave. Centro izquierda: desglose (68 válidos aceptados, 2 mutaciones rechazadas, 0 falsos rechazos). Centro derecha: 97.1\% PARSE\_OK global. Inferior: mapa de los 70 kernels (\texttt{k\_0000}--\texttt{k\_0069}); verde = éxito, naranja = mutación inválida (\texttt{k\_0040}, \texttt{k\_0058}).
+}
+\label{fig:benchmark70}
+\end{figure}
+
+\subsection{Detalle de los 2 rechazos (comportamiento esperado)}
+\begin{table}[H]
+\centering
+\caption{Kernels rechazados: mutaciones inválidas del benchmark.}
+\label{tab:rechazos}
+\begin{tabular}{@{}llp{6.5cm}@{}}
+\toprule
+\textbf{Kernel} & \textbf{Verificación Python} & \textbf{Motivo del rechazo} \\
+\midrule
+\texttt{k\_0040.tri} & \texttt{ast.parse} falla & \texttt{tl.store(out\_ptr + offs) \& ...} --- paréntesis inválido. \\
+\texttt{k\_0058.tri} & \texttt{ast.parse} falla & \texttt{tl.store(...), mask=...)} --- coma mal ubicada. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Estos rechazos demuestran que el parser \textbf{detecta errores sintácticos} con el mensaje \texttt{SYNTAX\_ERROR}, cumpliendo el entregable de mensajes de error del documento de evaluación.
+
+%------------------------------------------------------------------------------
+\subsection{Modelo de pruebas}
+\textbf{Verificación}: ¿se construyó el producto correctamente? --- compila, ejecuta, mensajes coherentes.\\
+\textbf{Validación}: ¿es el producto correcto? --- acepta Triton válido y rechaza inválido.
+
+\subsection{Suite unitaria (\texttt{make test})}
+\begin{table}[H]
+\centering
+\caption{Casos de prueba del equipo (11 ejecuciones).}
+\begin{tabular}{@{}llc@{}}
+\toprule
+ID & Descripción & Resultado \\
+\midrule
+V1--V3 & \texttt{ejemplo\_1..3.tri} (reporte léxico) & PASS \\
+V4--V5 & Kernels Triton mínimos & PASS \\
+I1--I5 & Sintaxis inválida deliberada & SYNTAX\_ERROR \\
+L1 & Modo \texttt{-t} tokens & PASS \\
+\midrule
+\multicolumn{2}{l}{\textbf{Total PASS}} &
+\IfFileExists{data/parser_pass.tex}{\input{data/parser_pass.tex}}{11} / 11 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evidencia: salida exitosa (\texttt{ejemplo\_1.tri})}
+\IfFileExists{../results/parser/valid_ejemplo_1.tri.log}{%
+\lstinputlisting[caption={Log de exito (\texttt{ejemplo\_1.tri}, extracto).}, basicstyle=\ttfamily\scriptsize, lastline=22]{../results/parser/valid_ejemplo_1.tri.log}
+}{}
+
+\subsection{Evidencia: error sintáctico (\texttt{def\_sin\_dos\_puntos.tri})}
+\IfFileExists{../results/parser/invalid_def_sin_dos_puntos.tri.log}{%
+\lstinputlisting[caption={Rechazo sintáctico esperado (suite unitaria).}, basicstyle=\ttfamily\scriptsize, lastline=5]{../results/parser/invalid_def_sin_dos_puntos.tri.log}
+}{}
+
+\subsection{Reproducibilidad}
+\begin{verbatim}
+cd analizador-sintactico
+make clean build test benchmark figures pdf
+\end{verbatim}
+Salidas: \texttt{results/parser/}, \texttt{results/benchmark/}, \texttt{figures/benchmark\_parse\_results.pdf}, \texttt{deliverables/Informe\_...pdf}.

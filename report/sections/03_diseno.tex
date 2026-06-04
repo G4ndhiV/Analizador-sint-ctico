@@ -1,0 +1,55 @@
+\section{Diseño}
+
+\subsection{Arquitectura del sistema}
+El diseño sigue el modelo en capas del compilador: \textbf{entrada} $\rightarrow$ \textbf{scanner} $\rightarrow$ \textbf{parser} $\rightarrow$ \textbf{acciones semánticas} (symtab + salida).
+
+\begin{figure}[H]
+\centering
+\begin{tabular}{@{}c@{\,$\rightarrow$\,}c@{\,$\rightarrow$\,}c@{\,$\rightarrow$\,}c@{}}
+\texttt{.tri} & Flex (\texttt{lexer/}) & yacc (\texttt{parser.y}) & Symtab + stdout/stderr \\
+\end{tabular}
+\caption{Pipeline del analizador sintáctico.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Integración lex $\leftrightarrow$ yacc}
+\begin{enumerate}
+  \item Bison genera \texttt{y.tab.c/h} con códigos de token y tipos \texttt{YYSTYPE}.
+  \item Flex incluye \texttt{y.tab.h}; \texttt{yyflexlex()} reconoce patrones; \texttt{yylex()} inyecta \texttt{INDENT}/\texttt{DEDENT}.
+  \item \texttt{yylval.i} transporta índices de tabla léxica; \texttt{yylval.s} transporta lexemas de operadores y delimitadores.
+  \item \texttt{driver.c} invoca \texttt{yyparse()} y, si no hay errores, imprime \texttt{PARSE\_OK} y tablas.
+\end{enumerate}
+
+\subsection{Diseño de la especificación yacc}
+\begin{itemize}
+  \item \textbf{Regla inicial}: \texttt{program} con bloque superior y newlines opcionales.
+  \item \textbf{Bloques}: \texttt{suite} usa \texttt{INDENT}/\texttt{DEDENT} para cuerpos de función y ramas \texttt{if}.
+  \item \textbf{Triton}: \texttt{opt\_triton\_decorator} reconoce \texttt{@triton.jit} en líneas separadas del \texttt{def}.
+  \item \textbf{Expresiones}: \texttt{member\_chain} para \texttt{tl.load}; \texttt{subscript\_list} para indexación tensorial.
+  \item \textbf{Precedencia}: \texttt{\%left} para operadores; \texttt{\%nonassoc KW\_ELSE} para \textit{dangling else}.
+\end{itemize}
+
+\subsection{Tabla de símbolos del parser (diseño)}
+\begin{table}[H]
+\centering
+\caption{Esquema de entradas en \texttt{symtab.c}.}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Tipo & Campos & Inserción \\
+\midrule
+Import & módulo, alias, línea & \texttt{import\_stmt} \\
+Función & nombre, línea, aridad, \texttt{triton\_jit} & cierre de \texttt{def\_stmt} \\
+Parámetro & función, nombre, posición, anotación & cada \texttt{param} \\
+Variable & nombre, ámbito, línea & \texttt{assign\_stmt} con \texttt{=} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Mensajes de error (diseño)}
+\begin{itemize}
+  \item \textbf{Léxico}: \texttt{LEXICAL\_ERROR: token\_id=<999> line=<n> lexeme="..."}.
+  \item \textbf{Sintáctico}: \texttt{SYNTAX\_ERROR: line=<n> near='' message='...'} vía \texttt{yyerror()}.
+\end{itemize}
+
+\subsection{Trazabilidad diseño $\rightarrow$ análisis}
+Cada requisito del análisis (Sección~2) se implementa en un módulo: CFG en \texttt{parser.y}, indentación en \texttt{lexer/}, symtab en \texttt{symtab.c}, errores en \texttt{yyerror}, salidas en \texttt{driver.c}.

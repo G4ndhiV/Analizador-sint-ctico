@@ -1,0 +1,104 @@
+\section{Análisis}
+
+\subsection{Entregables del reto (Sección IV, documento de evaluación)}
+\begin{enumerate}
+  \item Gramática correcta y no ambigua para kernels Triton, con explicación de decisiones.
+  \item Gestión de tablas de símbolos durante el análisis sintáctico.
+  \item Implementación del parser con yacc.
+  \item Mensajes de error sintácticos.
+  \item Ejemplos de salida del parser.
+\end{enumerate}
+
+\subsection{Requerimientos funcionales}
+\begin{itemize}
+  \item Reconocer programas \texttt{.tri}: imports, \texttt{@triton.jit}, \texttt{def}, cuerpos indentados.
+  \item Sentencias: asignación, \texttt{if/elif/else}, \texttt{while}, \texttt{for/in}, \texttt{return}, \texttt{pass}.
+  \item Expresiones: literales, operadores (500), llamadas \texttt{tl.*}, subíndices \texttt{[:, None]}, argumentos con nombre (\texttt{mask=}, \texttt{dtype=}).
+  \item Rechazar sintaxis inválida con \texttt{SYNTAX\_ERROR} en español.
+  \item Actualizar symtab: imports, funciones, parámetros, variables.
+\end{itemize}
+
+\subsection{CFG final (extracto completo)}
+\begin{lstlisting}[caption={CFG del lenguaje .tri (Triton kernel subset)}]
+program       -> opt_newlines top_block opt_newlines
+top_block     -> top_block top_line | epsilon
+top_line      -> stmt | stmt NEWLINE
+
+stmt          -> import_stmt | def_stmt | assign_stmt | if_stmt
+              | while_stmt | for_stmt | return_stmt | pass_stmt | expr_stmt
+
+import_stmt   -> KW_IMPORT import_name opt_as
+import_name   -> ID | import_name '.' ID
+
+opt_triton_decorator -> epsilon | '@' ID '.' ID opt_newlines
+
+def_stmt      -> opt_triton_decorator KW_DEF ID '(' param_list_opt ')' ':' suite
+
+suite         -> simple_stmt
+              | opt_newlines INDENT block_body DEDENT
+
+expr          -> literal | ID | ID member_chain
+              | expr OP expr | expr '[' subscript_list ']'
+              | '(' arg_list_opt ')' | call_expr | unary_expr
+
+subscript     -> expr | NONE | ':' opt_expr | opt_expr ':' opt_expr
+              | opt_expr ':' opt_expr ':' opt_expr
+
+call_expr     -> ID '(' arg_list_opt ')'
+              | ID member_chain '(' arg_list_opt ')'
+
+arg           -> expr | ID '=' expr
+\end{lstlisting}
+
+\subsection{Pasos para obtener la gramática}
+\begin{enumerate}
+  \item Inventario de tokens del reporte léxico (Cuadro~1).
+  \item Identificación de estructuras Triton en 70 kernels de referencia.
+  \item Borrador de producciones para bloques indentados (\texttt{INDENT}/\texttt{DEDENT}).
+  \item Incorporación de expresiones, llamadas y subíndices tensoriales.
+  \item Resolución de ambigüedades con precedencias yacc y pruebas iterativas.
+\end{enumerate}
+
+\subsection{Simplificaciones justificadas}
+\begin{table}[H]
+\centering
+\caption{Simplificaciones de la CFG.}
+\begin{tabular}{@{}p{3.2cm}p{8.5cm}@{}}
+\toprule
+Tipo & Decisión \\
+\midrule
+Unitarias & Jerarquía de expresiones colapsada en \texttt{expr} con \texttt{\%left}. \\
+$\varepsilon$ & Solo en listas opcionales, \texttt{else} y líneas vacías iniciales. \\
+Símbolos inútiles & Sin \texttt{class}, \texttt{try}, \texttt{switch} (no usados en kernels). \\
+Indentación & \texttt{WS\_COUNT} $\rightarrow$ pila $\rightarrow$ \texttt{INDENT}/\texttt{DEDENT}. \\
+Comentarios & Patrón \texttt{\#[\^{})\textbackslash n]*} para no consumir \texttt{)} en la misma línea. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Modificaciones al analizador léxico}
+\begin{itemize}
+  \item Integración con \texttt{y.tab.h}; \texttt{yylex()} retorna códigos de token.
+  \item Tokens sintéticos 910/911 (no en Cuadro~1 original; documentados en este reporte).
+  \item Sin nuevos IDs en el Cuadro~1 oficial; trazabilidad numérica conservada.
+\end{itemize}
+
+\subsection{Trazabilidad token léxico $\rightarrow$ yacc}
+\begin{table}[H]
+\centering
+\caption{Correspondencia Token ID (reporte léxico) y yacc.}
+\begin{tabular}{@{}cll@{}}
+\toprule
+ID & Nombre & yacc \\
+\midrule
+100 & IDENTIFIER & \texttt{TOKEN\_IDENTIFIER} \\
+101 & KEYWORD & \texttt{KW\_def}, \texttt{KW\_if}, \ldots \\
+200--400 & Literales & \texttt{TOKEN\_INTEGER}, etc. \\
+500 & OPERATOR & \texttt{TOKEN\_OPERATOR} \\
+600 & DELIMITER & \texttt{TOKEN\_DELIMITER} o literales \texttt{( ) [ ] : ,} \\
+900 & WS\_COUNT & convertido a INDENT/DEDENT \\
+950 & NEWLINE & \texttt{TOKEN\_NEWLINE} \\
+910/911 & (sintéticos) & \texttt{TOKEN\_INDENT}, \texttt{TOKEN\_DEDENT} \\
+\bottomrule
+\end{tabular}
+\end{table}
