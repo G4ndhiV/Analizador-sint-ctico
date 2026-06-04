@@ -12,12 +12,17 @@ analizador-sintactico/
 \end{verbatim}
 
 \subsection{Compilación y ejecución}
+Instrucciones completas para una PC nueva (clonado, dependencias, salidas): Sección~\ref{sub:reproducibilidad} y \texttt{README.md} en GitHub.
+
 \begin{verbatim}
+git clone https://github.com/G4ndhiV/Analizador-sint-ctico.git
+cd Analizador-sint-ctico
+make check-deps    # opcional
 make build
 make test          # 12 casos unitarios
-make benchmark     # 70 kernels TRITONHEAL
-make figures       # grafica de resultados
-make pdf           # este reporte
+make benchmark     # 70 kernels en benchmark/kernels/
+make figures
+make pdf           # requiere tectonic o latexmk
 ./build/triton_parser archivo.tri
 ./build/triton_parser -t archivo.tri   # modo solo lexico
 \end{verbatim}

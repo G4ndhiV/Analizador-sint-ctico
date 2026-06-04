@@ -1,33 +1,45 @@
 CC      = cc
 CFLAGS  = -Wall -Wextra -g -Iinclude -Ibuild -Iparser -Ilexer
-LEX     = flex
-YACC    = bison
-BISON   = /opt/homebrew/opt/bison/bin/bison
-FLEX    = /opt/homebrew/opt/flex/bin/flex
-LEX     = $(FLEX)
-YACC    = $(BISON)
-
 BUILD   = build
 LEX_SRC = lexer/lexico_equipo_11_scanner.l
 YACC_SRC = parser/parser.y
 
-.PHONY: all build test benchmark figures pdf clean
+UNAME_S := $(shell uname -s 2>/dev/null)
+ifeq ($(UNAME_S),Darwin)
+  BISON ?= /opt/homebrew/opt/bison/bin/bison
+  FLEX  ?= /opt/homebrew/opt/flex/bin/flex
+  FLEX_LIBS ?= -L/opt/homebrew/opt/flex/lib -lfl
+else
+  BISON ?= $(shell command -v bison 2>/dev/null || echo bison)
+  FLEX  ?= $(shell command -v flex 2>/dev/null || echo flex)
+  FLEX_LIBS ?= -lfl
+endif
+YACC = $(BISON)
+LEX  = $(FLEX)
+
+.PHONY: all build test benchmark figures pdf clean check-deps
 
 all: build
+
+check-deps:
+	@echo "=== Dependencias ==="
+	@command -v $(CC) >/dev/null && echo "OK  $(CC)" || echo "FALTA $(CC) (Xcode CLT o gcc)"
+	@command -v $(BISON) >/dev/null && $(BISON) --version | head -1 || echo "FALTA bison"
+	@command -v $(FLEX) >/dev/null && $(FLEX) --version | head -1 || echo "FALTA flex"
+	@command -v python3 >/dev/null && echo "OK  python3" || echo "FALTA python3"
+	@command -v tectonic >/dev/null && echo "OK  tectonic" || echo "AVISO tectonic (opcional para make pdf; usar latexmk)"
 
 build: $(BUILD)/triton_parser
 
 $(BUILD)/y.tab.c $(BUILD)/y.tab.h: $(YACC_SRC)
 	mkdir -p $(BUILD)
 	$(BISON) -d -o $(BUILD)/y.tab.c $(YACC_SRC)
-	@# yacc en macOS genera y.tab.h junto a y.tab.c
 
 $(BUILD)/lex.yy.c: $(LEX_SRC) $(BUILD)/y.tab.h
 	$(FLEX) -o $(BUILD)/lex.yy.c $(LEX_SRC)
 
 $(BUILD)/triton_parser: $(BUILD)/y.tab.c $(BUILD)/lex.yy.c parser/symtab.c src/driver.c
-	$(CC) $(CFLAGS) -o $@ $(BUILD)/y.tab.c $(BUILD)/lex.yy.c parser/symtab.c src/driver.c \
-		-L/opt/homebrew/opt/flex/lib -lfl
+	$(CC) $(CFLAGS) -o $@ $(BUILD)/y.tab.c $(BUILD)/lex.yy.c parser/symtab.c src/driver.c $(FLEX_LIBS)
 
 test: build
 	bash tests/run_tests.sh
@@ -38,7 +50,7 @@ benchmark: build
 
 figures: benchmark
 	@test -d .venv || python3 -m venv .venv
-	@.venv/bin/pip install -q matplotlib
+	@.venv/bin/pip install -q -r requirements.txt
 	@.venv/bin/python scripts/plot_benchmark_results.py
 
 pdf: test figures

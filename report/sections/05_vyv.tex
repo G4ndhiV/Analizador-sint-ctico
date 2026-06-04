@@ -107,8 +107,68 @@ L1 & Modo \texttt{-t} tokens & PASS \\
 }{}
 
 \subsection{Reproducibilidad}
+\label{sub:reproducibilidad}
+
+Todo el material necesario para reproducir el proyecto en una \textbf{computadora nueva} está en el repositorio público \url{https://github.com/G4ndhiV/Analizador-sint-ctico} (código, 70 kernels en \texttt{benchmark/kernels/}, fixtures en \texttt{tests/fixtures/lexico/}, CFG en \texttt{report/cfg/triton\_cfg.bnf}, resultados de referencia y PDF en \texttt{deliverables/}). No se requieren repositorios externos.
+
+\subsubsection{Prerrequisitos}
+\begin{table}[H]
+\centering
+\caption{Software necesario para reproducir compilación, pruebas, gráfica e informe.}
+\label{tab:repro-deps}
+\small
+\begin{tabular}{@{}llp{5.8cm}@{}}
+\toprule
+\textbf{Herramienta} & \textbf{Obligatorio} & \textbf{Instalación típica} \\
+\midrule
+\texttt{git} & Sí & Clonar el repositorio \\
+\texttt{cc} (GCC/Clang) & Sí & Xcode CLT (macOS) o \texttt{build-essential} (Linux) \\
+Bison & Sí & \texttt{brew install bison} / \texttt{apt install bison} \\
+Flex & Sí & \texttt{brew install flex} / \texttt{apt install flex} \\
+Python~3 + \texttt{venv} & Sí (gráfica) & \texttt{python3 -m venv .venv}; \texttt{pip install -r requirements.txt} \\
+Tectonic o \texttt{latexmk} & Solo para \texttt{make pdf} & \texttt{brew install tectonic} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Verificación rápida: \texttt{make check-deps} (objetivo del \texttt{Makefile} raíz).
+
+\subsubsection{Pasos desde cero (PC nueva)}
+\begin{enumerate}
+  \item \textbf{Clonar:}
 \begin{verbatim}
-cd analizador-sintactico
+git clone https://github.com/G4ndhiV/Analizador-sint-ctico.git
+cd Analizador-sint-ctico
+\end{verbatim}
+  \item \textbf{Comprobar dependencias (opcional):} \texttt{make check-deps}
+  \item \textbf{Compilar:} \texttt{make build} $\rightarrow$ ejecutable \texttt{build/triton\_parser}
+  \item \textbf{Suite unitaria:} \texttt{make test} $\rightarrow$ \textbf{12/12 PASS}; logs en \texttt{results/parser/}
+  \item \textbf{Benchmark 70 kernels:} \texttt{make benchmark} $\rightarrow$ \texttt{results/benchmark/summary.json}
+  \item \textbf{Gráfica:} \texttt{make figures} $\rightarrow$ \texttt{figures/benchmark\_parse\_results.pdf}
+  \item \textbf{Informe PDF:} \texttt{make pdf} $\rightarrow$ \texttt{deliverables/Informe\_Analizador\_Sintactico\_Equipo11.pdf}
+\end{enumerate}
+
+\subsubsection{Comando único (regeneración completa)}
+\begin{verbatim}
 make clean build test benchmark figures pdf
 \end{verbatim}
-Salidas: \texttt{results/parser/}, \texttt{results/benchmark/}, \texttt{figures/benchmark\_parse\_results.pdf}, \texttt{deliverables/Informe\_...pdf}.
+
+\subsubsection{Salidas verificables}
+\begin{itemize}
+  \item \texttt{results/parser/summary.json}: debe indicar \texttt{"pass": 12}, \texttt{"total": 12}.
+  \item \texttt{results/benchmark/summary.json}: \texttt{parse\_ok}: 68, \texttt{total}: 70.
+  \item \texttt{figures/benchmark\_parse\_results.pdf} y \texttt{.png}.
+  \item \texttt{deliverables/Informe\_Analizador\_Sintactico\_Equipo11.pdf} (incluye Apéndice~A, CFG 91 producciones).
+\end{itemize}
+
+\subsubsection{Consulta sin recompilar}
+Si solo se requiere evidencia entregada, basta con clonar el repositorio y abrir \texttt{deliverables/Informe\_Analizador\_Sintactico\_Equipo11.pdf} junto con los archivos \texttt{results/*/summary.json} ya versionados.
+
+\subsubsection{Notas por sistema operativo}
+\begin{itemize}
+  \item \textbf{macOS:} el \texttt{Makefile} enlaza Flex desde Homebrew (\texttt{/opt/homebrew/opt/flex/lib}). Instalar \texttt{bison} y \texttt{flex} con Homebrew si \texttt{make build} falla.
+  \item \textbf{Linux:} usar \texttt{bison} y \texttt{flex} del sistema; el \texttt{Makefile} detecta \texttt{uname} y enlaza con \texttt{-lfl}.
+  \item \textbf{Reglas léxicas \texttt{BAD\_ID}:} definidas en \texttt{lexer/lexico\_equipo\_11\_scanner.l}, alineadas con \url{https://github.com/G4ndhiV/Analizador-lexico}; caso de prueba I6 en \texttt{tests/invalid/identificador\_caracter\_invalido.tri}.
+\end{itemize}
+
+La guía extendida en Markdown está en \texttt{README.md} del mismo repositorio.
