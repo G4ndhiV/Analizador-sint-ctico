@@ -240,7 +240,7 @@ def main():
     note = (
         "Conclusion: sobre kernels sintacticamente validos, el parser acepta el 100% (68/68). "
         "Los 2 SYNTAX_ERROR (k_0040, k_0058) son mutaciones del benchmark; Python ast.parse tambien falla. "
-        "Suite unitaria: 11/11 PASS. Cero errores lexicos en la corrida."
+        "Suite unitaria: 12/12 PASS. Cero errores lexicos en la corrida del benchmark."
     )
     ax_note.text(
         0.5, 0.5, note,

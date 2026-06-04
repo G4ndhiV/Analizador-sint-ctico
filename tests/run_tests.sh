@@ -46,11 +46,11 @@ run_invalid() {
     echo "FAIL  invalid $name (debió fallar)"
     FAIL=$((FAIL + 1))
   else
-    if grep -q "SYNTAX_ERROR" "$log"; then
+    if grep -qE "SYNTAX_ERROR|LEXICAL_ERROR" "$log"; then
       echo "PASS  invalid $name"
       PASS=$((PASS + 1))
     else
-      echo "FAIL  invalid $name (sin SYNTAX_ERROR)"
+      echo "FAIL  invalid $name (sin SYNTAX_ERROR ni LEXICAL_ERROR)"
       tail -5 "$log"
       FAIL=$((FAIL + 1))
     fi

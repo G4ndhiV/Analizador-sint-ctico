@@ -1,0 +1,2 @@
+# Caso I6: identificador con caracteres invalidos dollar, backtick, etc.
+x$ = 1

@@ -4,7 +4,7 @@
 \label{sec:resultados}
 
 \noindent\fbox{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{%
-\textbf{Hallazgo principal.} El analizador sintáctico \texttt{triton\_parser} alcanza \textbf{97.1\% PARSE\_OK} sobre el benchmark TRITONHEAL (68/70 kernels) y \textbf{100\% de éxito} en la suite unitaria (11/11). Los únicos dos rechazos corresponden a \textbf{mutaciones sintácticamente inválidas} del benchmark (\texttt{k\_0040}, \texttt{k\_0058}), confirmadas también con el analizador \texttt{ast} de Python. \textbf{No se registraron falsos rechazos} en kernels válidos ni errores léxicos en la corrida del benchmark.
+\textbf{Hallazgo principal.} El analizador sintáctico \texttt{triton\_parser} alcanza \textbf{97.1\% PARSE\_OK} sobre el benchmark TRITONHEAL (68/70 kernels) y \textbf{100\% de éxito} en la suite unitaria (12/12). Los únicos dos rechazos corresponden a \textbf{mutaciones sintácticamente inválidas} del benchmark (\texttt{k\_0040}, \texttt{k\_0058}), confirmadas también con el analizador \texttt{ast} de Python. \textbf{No se registraron falsos rechazos} en kernels válidos ni errores léxicos en la corrida del benchmark.
 }}
 
 \vspace{0.8em}
@@ -18,7 +18,7 @@
 \toprule
 \textbf{Experimento} & \textbf{Éxito} & \textbf{Total} & \textbf{Tasa} \\
 \midrule
-Suite unitaria (regresión + inválidos + léxico) & 11 & 11 & \textbf{100\%} \\
+Suite unitaria (regresión + inválidos + léxico) & 12 & 12 & \textbf{100\%} \\
 Benchmark TRITONHEAL (kernels \texttt{k\_*.tri}) & 68 & 70 & \textbf{97.1\%} \\
 \quad $\hookrightarrow$ kernels válidos aceptados & 68 & 68 & \textbf{100\%} \\
 \quad $\hookrightarrow$ mutaciones rechazadas (correcto) & 2 & 2 & \textbf{100\%} \\
@@ -31,7 +31,7 @@ Errores léxicos en benchmark & 0 & 70 & 0\% \\
 Los resultados deben leerse en dos niveles:
 
 \begin{enumerate}
-  \item \textbf{Suite unitaria (11/11 PASS).} Valida que el parser cumple los entregables del curso: acepta \texttt{ejemplo\_1.tri}--\texttt{ejemplo\_3.tri} del reporte léxico, kernels Triton mínimos propios, rechaza cinco archivos con errores sintácticos deliberados y conserva el modo \texttt{-t} del scanner.
+  \item \textbf{Suite unitaria (12/12 PASS).} Valida que el parser cumple los entregables del curso: acepta \texttt{ejemplo\_1.tri}--\texttt{ejemplo\_3.tri} del reporte léxico, kernels Triton mínimos propios, rechaza cinco archivos con errores sintácticos deliberados, rechaza un identificador con caracteres invalidos (\texttt{BAD\_ID}, caso I6) con \texttt{LEXICAL\_ERROR}, y conserva el modo \texttt{-t} del scanner.
   \item \textbf{Benchmark de 70 kernels (68 PARSE\_OK).} Mide desempeño sobre el banco de pruebas TRITONHEAL usado en el proyecto del equipo. De 70 archivos, \textbf{68 son sintácticamente válidos} y fueron aceptados; \textbf{2 son mutaciones inválidas} sembradas en el benchmark y fueron rechazadas correctamente por el parser.
 \end{enumerate}
 
@@ -82,6 +82,7 @@ ID & Descripción & Resultado \\
 V1--V3 & \texttt{ejemplo\_1..3.tri} (reporte léxico) & PASS \\
 V4--V5 & Kernels Triton mínimos & PASS \\
 I1--I5 & Sintaxis inválida deliberada & SYNTAX\_ERROR \\
+I6 & Identificador con \texttt{BAD\_ID} (\texttt{x\$}) & LEXICAL\_ERROR \\
 L1 & Modo \texttt{-t} tokens & PASS \\
 \midrule
 \multicolumn{2}{l}{\textbf{Total PASS}} &
@@ -98,6 +99,11 @@ L1 & Modo \texttt{-t} tokens & PASS \\
 \subsection{Evidencia: error sintáctico (\texttt{def\_sin\_dos\_puntos.tri})}
 \IfFileExists{../results/parser/invalid_def_sin_dos_puntos.tri.log}{%
 \lstinputlisting[caption={Rechazo sintáctico esperado (suite unitaria).}, basicstyle=\ttfamily\scriptsize, lastline=5]{../results/parser/invalid_def_sin_dos_puntos.tri.log}
+}{}
+
+\subsection{Evidencia: error léxico \texttt{BAD\_ID} (I6)}
+\IfFileExists{../results/parser/invalid_identificador_caracter_invalido.tri.log}{%
+\lstinputlisting[caption={Rechazo por identificador con \texttt{\$} (regla \texttt{BAD\_ID}, alineada con Analizador-lexico).}, basicstyle=\ttfamily\scriptsize, lastline=3]{../results/parser/invalid_identificador_caracter_invalido.tri.log}
 }{}
 
 \subsection{Reproducibilidad}

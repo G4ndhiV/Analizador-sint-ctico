@@ -2,78 +2,223 @@
 \section{Gramática libre de contexto completa}
 \label{ap:cfg-completa}
 
-Esta sección presenta la \textbf{CFG completa} del subconjunto de Python/Triton implementado en \texttt{parser/parser.y}. Cada producción corresponde a una regla yacc sin las acciones semánticas en C. Las producciones vacías del analizador se denotan como \texttt{epsilon} ($\varepsilon$).
+Esta sección es la \textbf{referencia formal exhaustiva} del analizador: cada no terminal, cada alternativa de producción y cada terminal declarado en \texttt{parser/parser.y} quedan documentados sin omisiones. El listado numerado P-001\ldots P-091 en el Archivo~\ref{lst:cfg-completa} corresponde \textbf{uno a uno} con las 91 alternativas de las 33 reglas yacc (líneas 76--321).
 
-\textbf{Convenciones:}
+\subsection{Convenciones y notación}
 \begin{itemize}
-  \item \texttt{ID}, \texttt{INT}, \texttt{FLOAT}, \texttt{STRING} $\equiv$ \texttt{TOKEN\_IDENTIFIER}, \texttt{TOKEN\_INTEGER}, \texttt{TOKEN\_FLOAT}, \texttt{TOKEN\_STRING}.
-  \item \texttt{OP} $\equiv$ \texttt{TOKEN\_OPERATOR} (p.\,ej.\ lexema \texttt{=}, \texttt{+}, \texttt{*}).
-  \item \texttt{DELIM} $\equiv$ \texttt{TOKEN\_DELIMITER} cuando el léxico clasifica un símbolo como delimitador en expresiones.
-  \item \texttt{NEWLINE}, \texttt{INDENT}, \texttt{DEDENT} $\equiv$ tokens 950, 910 y 911 (sintéticos desde \texttt{WS\_COUNT}).
-  \item \texttt{KW\_*} son terminales de palabra reservada (\texttt{def}, \texttt{if}, \texttt{import}, \texttt{None}, etc.).
-  \item Paréntesis, corchetes, dos puntos, coma y punto son literales en la gramática yacc.
+  \item \textbf{Forma}: \texttt{NT -> cuerpo}; varias líneas con el mismo NT son alternativas (OR).
+  \item \textbf{$\varepsilon$ / \texttt{epsilon}}: producción vacía (\texttt{/* empty */} en Bison).
+  \item \textbf{Prefijo P-NNN}: identificador de trazabilidad en \texttt{triton\_cfg.bnf}; no es un símbolo del lenguaje.
+  \item \textbf{Terminales léxicos}: se escriben como en yacc (\texttt{TOKEN\_*}, \texttt{KW\_*}) o como literales entre comillas simples.
+  \item \textbf{Acciones semánticas}: no forman parte de la CFG; se listan en la Subsección~\ref{sub:acciones-cfg} solo como notas de implementación.
 \end{itemize}
 
-\subsection{Terminales del analizador}
+\subsection{Símbolo inicial y conteo}
 \begin{table}[H]
 \centering
-\caption{Conjunto de terminales (yacc / reporte léxico).}
-\label{tab:terminales-cfg}
-\small
-\begin{tabular}{@{}clp{6.8cm}@{}}
+\caption{Resumen formal de la gramática implementada.}
+\label{tab:cfg-resumen}
+\begin{tabular}{@{}lr@{}}
 \toprule
-\textbf{Símbolo} & \textbf{ID} & \textbf{Descripción} \\
+\textbf{Concepto} & \textbf{Valor} \\
 \midrule
-\texttt{ID} & 100 & Identificadores \\
-\texttt{KW\_*} & 101 & Palabras reservadas (\texttt{def}, \texttt{if}, \texttt{for}, \ldots) \\
-\texttt{INT} & 200 & Enteros \\
-\texttt{FLOAT} & 300 & Flotantes \\
-\texttt{STRING} & 400 & Cadenas \\
-\texttt{OP} & 500 & Operadores \\
-\texttt{DELIM} & 600 & Delimitadores léxicos \\
-\texttt{COMMENT} & 700 & Comentarios (descartados en parseo) \\
-\texttt{INDENT} & 910 & Inicio de bloque indentado \\
-\texttt{DEDENT} & 911 & Fin de bloque indentado \\
-\texttt{NEWLINE} & 950 & Fin de línea \\
-\texttt{'@'}, \texttt{'.'}, \texttt{'('}, \texttt{')'}, \texttt{'['}, \texttt{']'}, \texttt{':'}, \texttt{','} & --- & Literales en reglas yacc \\
+Símbolo inicial (\texttt{\%start}) & \texttt{program} \\
+No terminales con producciones & 33 \\
+Alternativas de producción (total) & 91 \\
+Archivo de implementación & \texttt{parser/parser.y} \\
+Archivo BNF documentado & \texttt{report/cfg/triton\_cfg.bnf} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\subsection{Terminales del analizador}
+\label{sub:terminales-cfg}
+
+\subsubsection{Terminales que aparecen en producciones}
+\begin{table}[H]
+\centering
+\caption{Terminales usados en al menos una producción de la CFG.}
+\label{tab:terminales-cfg}
+\scriptsize
+\begin{tabular}{@{}clp{5.5cm}@{}}
+\toprule
+\textbf{Símbolo yacc} & \textbf{ID} & \textbf{Rol en kernels \texttt{.tri}} \\
+\midrule
+\texttt{TOKEN\_IDENTIFIER} & 100 & Nombres, módulos, funciones \\
+\texttt{TOKEN\_INTEGER} & 200 & Literales enteros \\
+\texttt{TOKEN\_FLOAT} & 300 & Literales flotantes \\
+\texttt{TOKEN\_STRING} & 400 & Cadenas \\
+\texttt{TOKEN\_OPERATOR} & 500 & Operadores binarios/unarios, \texttt{=} en asignación \\
+\texttt{TOKEN\_DELIMITER} & 600 & Delimitadores en expresiones y \texttt{member\_chain} \\
+\texttt{TOKEN\_NEWLINE} & 950 & Fin de línea \\
+\texttt{TOKEN\_INDENT} & 910 & Inicio de bloque (desde \texttt{WS\_COUNT}) \\
+\texttt{TOKEN\_DEDENT} & 911 & Fin de bloque \\
+\texttt{KW\_IMPORT}, \texttt{KW\_AS} & 101 & \texttt{import}/\texttt{as} \\
+\texttt{KW\_DEF} & 101 & Definición de kernel \\
+\texttt{KW\_IF}, \texttt{KW\_ELIF}, \texttt{KW\_ELSE} & 101 & Condicionales \\
+\texttt{KW\_WHILE}, \texttt{KW\_FOR}, \texttt{KW\_IN} & 101 & Bucles \\
+\texttt{KW\_RETURN}, \texttt{KW\_PASS} & 101 & Control de flujo \\
+\texttt{KW\_NONE}, \texttt{KW\_TRUE}, \texttt{KW\_FALSE} & 101 & Constantes \\
+\texttt{'@'}, \texttt{'.'}, \texttt{'('}, \texttt{')'} & --- & Decorador, acceso, agrupación \\
+\texttt{'['}, \texttt{']'}, \texttt{':'}, \texttt{','} & --- & Subíndices, slices, listas \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Terminales declarados y no usados en reglas}
+En \texttt{parser.y} (líneas 53--59) se declaran además \texttt{TOKEN\_COMMENT}, \texttt{TOKEN\_KEYWORD} y \texttt{KW\_BREAK}, \texttt{KW\_CONTINUE}, \texttt{KW\_AND}, \texttt{KW\_OR}, \texttt{KW\_NOT}. \textbf{Ninguna producción} de la CFG los referencia: el lexer no los entrega al parser en modo normal (\texttt{COMMENT} se descarta; las palabras no modeladas en \texttt{stmt}/\texttt{expr} producirían error sintáctico si se usaran).
+
 \subsection{Precedencia y asociatividad (yacc)}
-Las ambigüedades de expresiones y de la regla \texttt{if}--\texttt{else} se resuelven con las directivas de \texttt{parser.y} (de menor a mayor precedencia en la pila):
+\label{sub:precedencia-cfg}
 
 \begin{table}[H]
 \centering
-\caption{Orden de precedencia (\texttt{\%left} / \texttt{\%nonassoc}).}
+\caption{Directivas \texttt{\%left} / \texttt{\%nonassoc} en \texttt{parser.y} (L64--70).}
 \label{tab:precedencia-cfg}
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{@{}cll@{}}
 \toprule
-\textbf{Precedencia} & \textbf{Asociatividad} & \textbf{Terminales} \\
+\textbf{Nivel} & \textbf{Asoc.} & \textbf{Terminales} \\
 \midrule
-1 (más baja) & izquierda & \texttt{NEWLINE} \\
+1 (más baja) & izquierda & \texttt{TOKEN\_NEWLINE} \\
 2 & izquierda & \texttt{KW\_OR} \\
 3 & izquierda & \texttt{KW\_AND} \\
 4 & no asoc. & \texttt{KW\_NOT} \\
-5 & izquierda & \texttt{OP}, \texttt{DELIM} (en \texttt{expr}) \\
+5 & izquierda & \texttt{TOKEN\_OPERATOR}, \texttt{TOKEN\_DELIMITER} (en \texttt{expr}) \\
 6 & no asoc. & \texttt{KW\_ELIF} \\
 7 (más alta) & no asoc. & \texttt{KW\_ELSE} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Producciones (33 no terminales)}
-El listado siguiente agrupa las \textbf{33 reglas no terminales} de la implementación: \texttt{program}, \texttt{opt\_newlines}, \texttt{top\_block}, \texttt{top\_line}, \texttt{stmt}, \texttt{import\_stmt}, \texttt{import\_name}, \texttt{opt\_as}, \texttt{triton\_decorator}, \texttt{opt\_triton\_decorator}, \texttt{def\_stmt}, \texttt{param\_list\_opt}, \texttt{param\_list}, \texttt{param}, \texttt{suite}, \texttt{block\_body}, \texttt{block\_stmt}, \texttt{simple\_stmt}, \texttt{assign\_stmt}, \texttt{if\_stmt}, \texttt{elif\_parts}, \texttt{else\_part}, \texttt{while\_stmt}, \texttt{for\_stmt}, \texttt{return\_stmt}, \texttt{pass\_stmt}, \texttt{expr\_stmt}, \texttt{expr}, \texttt{opt\_expr}, \texttt{subscript\_list}, \texttt{subscript}, \texttt{unary\_expr}, \texttt{member\_chain}, \texttt{call\_expr}, \texttt{arg\_list\_opt}, \texttt{arg\_list}, \texttt{arg}.
+\textit{Nota:} la jerarquía de \texttt{expr} está \textbf{colapsada} en un solo no terminal; la precedencia entre operadores concretos (\texttt{+}, \texttt{*}, etc.) depende del orden de lectura y de estas declaraciones, no de niveles \texttt{expr\_add}, \texttt{expr\_mul}, etc.
 
+\subsection{Inventario de no terminales (33)}
+\label{sub:inventario-nt}
+
+\begin{longtable}{@{}p{3.4cm}rcp{2.2cm}@{}}
+\caption{Catálogo de no terminales: número de alternativas e intervalo en \texttt{parser.y}.}
+\label{tab:inventario-nt} \\
+\toprule
+\textbf{No terminal} & \textbf{Alt.} & \textbf{IDs P-} & \textbf{yacc} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{l}{\textit{(continuación)}} \\
+\toprule
+\textbf{No terminal} & \textbf{Alt.} & \textbf{IDs P-} & \textbf{yacc} \\
+\midrule
+\endhead
+\texttt{program} & 1 & 001 & L76--79 \\
+\texttt{opt\_newlines} & 2 & 002--003 & L81--84 \\
+\texttt{top\_block} & 2 & 004--005 & L86--89 \\
+\texttt{top\_line} & 2 & 006--007 & L91--94 \\
+\texttt{suite} & 2 & 008--009 & L189--192 \\
+\texttt{block\_body} & 2 & 010--011 & L194--197 \\
+\texttt{block\_stmt} & 3 & 012--014 & L199--203 \\
+\texttt{simple\_stmt} & 1 & 015 & L205--207 \\
+\texttt{stmt} & 9 & 016--024 & L96--106 \\
+\texttt{import\_stmt} & 1 & 025 & L108--113 \\
+\texttt{import\_name} & 2 & 026--027 & L115--128 \\
+\texttt{opt\_as} & 2 & 028--029 & L130--133 \\
+\texttt{triton\_decorator} & 1 & 030 & L135--142 \\
+\texttt{opt\_triton\_decorator} & 2 & 031--032 & L159--162 \\
+\texttt{def\_stmt} & 1 & 033 & L144--157 \\
+\texttt{assign\_stmt} & 1 & 034 & L209--216 \\
+\texttt{if\_stmt} & 1 & 035 & L218--220 \\
+\texttt{elif\_parts} & 2 & 036--037 & L222--225 \\
+\texttt{else\_part} & 2 & 038--039 & L227--230 \\
+\texttt{while\_stmt} & 1 & 040 & L232--234 \\
+\texttt{for\_stmt} & 1 & 041 & L236--238 \\
+\texttt{return\_stmt} & 2 & 042--043 & L240--243 \\
+\texttt{pass\_stmt} & 1 & 044 & L245--247 \\
+\texttt{expr\_stmt} & 1 & 045 & L249--251 \\
+\texttt{param\_list\_opt} & 2 & 046--047 & L164--167 \\
+\texttt{param\_list} & 2 & 048--049 & L169--174 \\
+\texttt{param} & 2 & 050--051 & L176--187 \\
+\texttt{expr} & 16 & 052--068 & L253--271 \\
+\texttt{opt\_expr} & 2 & 069--070 & L273--276 \\
+\texttt{unary\_expr} & 1 & 071 & L291--293 \\
+\texttt{member\_chain} & 4 & 072--075 & L295--300 \\
+\texttt{call\_expr} & 3 & 076--078 & L302--306 \\
+\texttt{subscript\_list} & 2 & 079--080 & L278--281 \\
+\texttt{subscript} & 5 & 081--085 & L283--289 \\
+\texttt{arg\_list\_opt} & 2 & 086--087 & L308--311 \\
+\texttt{arg\_list} & 2 & 088--089 & L313--316 \\
+\texttt{arg} & 2 & 090--091 & L318--321 \\
+\midrule
+\multicolumn{2}{r}{\textbf{Total alternativas:}} & \multicolumn{2}{l}{\textbf{91}} \\
+\bottomrule
+\end{longtable}
+
+\subsection{Notas semánticas ligadas a la CFG (fuera de producciones)}
+\label{sub:acciones-cfg}
+
+\begin{table}[H]
+\centering
+\caption{Acciones en C asociadas a reglas seleccionadas (no son parte de la CFG).}
+\scriptsize
+\begin{tabular}{@{}p{2.8cm}p{9.5cm}@{}}
+\toprule
+\textbf{Regla} & \textbf{Efecto} \\
+\midrule
+\texttt{program} & \texttt{parse\_ok := 1} al reducir. \\
+\texttt{import\_stmt} & \texttt{symtab\_add\_import}. \\
+\texttt{triton\_decorator} & Activa bandera si lexemas son \texttt{triton.jit}. \\
+\texttt{def\_stmt} & Tras \texttt{ID}: \texttt{current\_func}; tras \texttt{')' ':'}: \texttt{symtab\_add\_function}. \\
+\texttt{param} & \texttt{symtab\_add\_param} por cada parámetro. \\
+\texttt{assign\_stmt} & Variable en symtab solo si \texttt{TOKEN\_OPERATOR} es \texttt{'='}. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Desglose detallado: no terminal \texttt{expr} (16 alternativas)}
+Todas las formas de expresión admitidas por el parser:
+
+\begin{enumerate}
+  \item \texttt{TOKEN\_INTEGER}
+  \item \texttt{TOKEN\_FLOAT}
+  \item \texttt{TOKEN\_STRING}
+  \item \texttt{TOKEN\_IDENTIFIER} (solo identificador)
+  \item \texttt{TOKEN\_IDENTIFIER member\_chain} (identificador calificado)
+  \item \texttt{KW\_NONE}, \texttt{KW\_TRUE}, \texttt{KW\_FALSE}
+  \item \texttt{expr TOKEN\_OPERATOR expr} (binario)
+  \item \texttt{expr TOKEN\_DELIMITER expr} (binario con delimitador léxico)
+  \item \texttt{'(' arg\_list\_opt ')'} (tupla / agrupación)
+  \item \texttt{'[' expr ']'} (lista de un elemento)
+  \item \texttt{'[' expr ':' expr ']'} (slice con dos extremos)
+  \item \texttt{'[' expr ':' expr ',' expr ']'} (slice con stride)
+  \item \texttt{expr '[' subscript\_list ']'} (indexación)
+  \item \texttt{call\_expr}
+  \item \texttt{unary\_expr}
+\end{enumerate}
+
+\subsection{Desglose detallado: \texttt{subscript} (5 alternativas)}
+Soporta índices y slices estilo Python/Triton: expresión simple, \texttt{None}, \texttt{: expr}, \texttt{expr : expr}, \texttt{expr : expr : expr} (con \texttt{opt\_expr} opcional en cada posición de slice).
+
+\subsection{Desglose detallado: \texttt{block\_stmt} (3 alternativas)}
+Permite sentencias sueltas, líneas vacías dentro de bloques indentados, y secuencias \texttt{NEWLINE stmt} para alinear el cuerpo con la indentación Python.
+
+\subsection{Listado completo de producciones (P-001 a P-091)}
 \lstinputlisting[
+  language=bnf,
   basicstyle=\ttfamily\scriptsize,
   breaklines=true,
   frame=single,
   numbers=left,
   numberstyle=\tiny,
-  caption={CFG completa del lenguaje \texttt{.tri} (archivo \texttt{report/cfg/triton\_cfg.bnf}).},
+  caption={CFG completa numerada: 33 no terminales, 91 alternativas (\texttt{report/cfg/triton\_cfg.bnf}).},
   label={lst:cfg-completa}
 ]{cfg/triton_cfg.bnf}
 
-\subsection{Trazabilidad CFG $\rightarrow$ implementación}
-La gramática de este apéndice es la referencia formal del entregable; la implementación ejecutable está en \texttt{parser/parser.y} (reglas entre las marcas \texttt{\%\%}). Cualquier cambio en yacc debe reflejarse en \texttt{triton\_cfg.bnf} para mantener consistencia documental.
+\subsection{Implementación yacc (referencia cruzada)}
+Para verificación línea a línea, las reglas ejecutables (con acciones) son:
+
+\lstinputlisting[
+  language=C,
+  firstline=76,
+  lastline=321,
+  caption={\texttt{parser/parser.y}: bloque completo de producciones yacc (L76--321).},
+  label={lst:parser-y-gramatica}
+]{../parser/parser.y}
+
+\subsection{Trazabilidad y mantenimiento}
+Cualquier modificación en \texttt{parser/parser.y} exige actualizar \texttt{triton\_cfg.bnf} (renumerar P-*, tabla~\ref{tab:inventario-nt} y conteo 91) y recompilar el PDF. La Sección~2 del análisis conserva un \textbf{resumen}; este apéndice es la definición \textbf{completa}.

@@ -14,13 +14,20 @@ analizador-sintactico/
 \subsection{Compilación y ejecución}
 \begin{verbatim}
 make build
-make test          # 11 casos unitarios
+make test          # 12 casos unitarios
 make benchmark     # 70 kernels TRITONHEAL
 make figures       # grafica de resultados
 make pdf           # este reporte
 ./build/triton_parser archivo.tri
 ./build/triton_parser -t archivo.tri   # modo solo lexico
 \end{verbatim}
+
+\subsection{Fragmento: detección \texttt{BAD\_ID} (lexer)}
+Misma política que el repositorio léxico del equipo (\texttt{Analizador-lexico}): la regla \texttt{BAD\_ID} tiene precedencia sobre \texttt{ID} para no tokenizar por partes un nombre inválido.
+
+\lstinputlisting[language=C, firstline=64, lastline=68, caption={Definiciones Flex \texttt{BAD\_ID\_CHAR} y \texttt{BAD\_ID}.}]{../lexer/lexico_equipo_11_scanner.l}
+
+\lstinputlisting[language=C, firstline=138, lastline=144, caption={Acción léxica: error por identificador con caracteres invalidos.}]{../lexer/lexico_equipo_11_scanner.l}
 
 \subsection{Fragmento: integración de indentación (lexer)}
 \lstinputlisting[language=C, firstline=230, lastline=280, caption={Pila de indentación y \texttt{yylex} wrapper.}]{../lexer/lexico_equipo_11_scanner.l}

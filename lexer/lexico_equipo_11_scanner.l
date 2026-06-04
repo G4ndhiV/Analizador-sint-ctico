@@ -64,6 +64,7 @@ int yylex(void);
 LETTER          [a-zA-Z_]
 DIGIT           [0-9]
 ID              [a-zA-Z_][a-zA-Z0-9_]*
+/* BAD_ID: misma politica que Analizador-lexico (G4ndhiV/Analizador-lexico) */
 BAD_ID_CHAR     [$`\\?!]
 BAD_ID          ([a-zA-Z0-9_]+{BAD_ID_CHAR}+([a-zA-Z0-9_]|{BAD_ID_CHAR})*|{BAD_ID_CHAR}+[a-zA-Z0-9_]([a-zA-Z0-9_]|{BAD_ID_CHAR})*)
 INT             {DIGIT}+
@@ -136,6 +137,7 @@ DELIMITER       [()\[\]{}.,;:@]|"->"
 }
 
 {BAD_ID} {
+    /* Un solo error lexico por lexema invalido (no se descompone en varios tokens). */
     fprintf(stderr,
             "LEXICAL_ERROR: token_id=<%d> line=%d lexeme=\"%s\" (identificador con caracteres invalidos)\n",
             TOKEN_ERROR, line_no, yytext);

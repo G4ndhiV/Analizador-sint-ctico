@@ -22,7 +22,7 @@ En Linux, edita las rutas en el `Makefile` o instala `bison`/`flex` en el PATH d
 
 ```bash
 make build          # compila build/triton_parser
-make test           # suite unitaria (11 pruebas)
+make test           # suite unitaria (12 pruebas)
 make benchmark      # 70 kernels en benchmark/kernels/
 make figures        # gráfica en figures/
 make pdf            # informe PDF (requiere tectonic)
@@ -39,7 +39,7 @@ Probar un archivo:
 
 | Artefacto | Descripción |
 |-----------|-------------|
-| `results/parser/summary.json` | Suite unitaria: **11/11 PASS** |
+| `results/parser/summary.json` | Suite unitaria: **12/12 PASS** |
 | `results/benchmark/summary.json` | Benchmark 70 kernels: **68 PARSE_OK (97.1%)** |
 | `figures/benchmark_parse_results.pdf` | Gráfica de resultados |
 | `deliverables/Informe_Analizador_Sintactico_Equipo11.pdf` | Informe IEEE-830 |

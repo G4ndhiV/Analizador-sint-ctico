@@ -1,143 +1,224 @@
-% CFG completa - analizador sintactico Triton (.tri)
-% Correspondencia 1:1 con parser/parser.y (producciones sin acciones semanticas)
-% Notacion: A -> alpha | beta ; epsilon = produccion vacia
+% =============================================================================
+% CFG COMPLETA - Analizador sintactico Triton (.tri) - Equipo 11
+% Fuente canonica de implementacion: parser/parser.y (reglas entre %% ... %%)
+% Simbolo inicial: program
+% No terminales: 33 | Producciones (alternativas): 91 | Ultima revision: parser.y
+% Notacion: NT -> cuerpo   (una alternativa por linea con prefijo P-NNN)
+% epsilon = produccion vacia (/* empty */ en yacc)
+% =============================================================================
 
-% --- Programa y bloques ---
-program         -> opt_newlines top_block opt_newlines
+% -----------------------------------------------------------------------------
+% 1. PROGRAMA Y ESTRUCTURA DE BLOQUES
+% -----------------------------------------------------------------------------
 
-opt_newlines    -> epsilon
-                | opt_newlines NEWLINE
+% NT: program (1 produccion) | parser.y L76-79
+P-001  program           -> opt_newlines top_block opt_newlines
 
-top_block       -> epsilon
-                | top_block top_line
+% NT: opt_newlines (2) | L81-84
+P-002  opt_newlines      -> epsilon
+P-003  opt_newlines      -> opt_newlines TOKEN_NEWLINE
 
-top_line        -> stmt
-                | stmt NEWLINE
+% NT: top_block (2) | L86-89
+P-004  top_block         -> epsilon
+P-005  top_block         -> top_block top_line
 
-suite           -> simple_stmt
-                | opt_newlines INDENT block_body DEDENT
+% NT: top_line (2) | L91-94
+P-006  top_line          -> stmt
+P-007  top_line          -> stmt TOKEN_NEWLINE
 
-block_body      -> epsilon
-                | block_body block_stmt
+% NT: suite (2) | L189-192
+P-008  suite             -> simple_stmt
+P-009  suite             -> opt_newlines TOKEN_INDENT block_body TOKEN_DEDENT
 
-block_stmt      -> stmt
-                | block_body NEWLINE
-                | block_body NEWLINE stmt
+% NT: block_body (2) | L194-197
+P-010  block_body        -> epsilon
+P-011  block_body        -> block_body block_stmt
 
-simple_stmt     -> stmt
+% NT: block_stmt (3) | L199-203
+P-012  block_stmt        -> stmt
+P-013  block_stmt        -> block_body TOKEN_NEWLINE
+P-014  block_stmt        -> block_body TOKEN_NEWLINE stmt
 
-% --- Sentencias ---
-stmt            -> import_stmt
-                | def_stmt
-                | assign_stmt
-                | if_stmt
-                | while_stmt
-                | for_stmt
-                | return_stmt
-                | pass_stmt
-                | expr_stmt
+% NT: simple_stmt (1) | L205-207
+P-015  simple_stmt       -> stmt
 
-import_stmt     -> KW_IMPORT import_name opt_as
+% -----------------------------------------------------------------------------
+% 2. SENTENCIAS (stmt y derivados)
+% -----------------------------------------------------------------------------
 
-import_name     -> ID
-                | import_name '.' ID
+% NT: stmt (9 alternativas) | L96-106
+P-016  stmt              -> import_stmt
+P-017  stmt              -> def_stmt
+P-018  stmt              -> assign_stmt
+P-019  stmt              -> if_stmt
+P-020  stmt              -> while_stmt
+P-021  stmt              -> for_stmt
+P-022  stmt              -> return_stmt
+P-023  stmt              -> pass_stmt
+P-024  stmt              -> expr_stmt
 
-opt_as          -> epsilon
-                | KW_AS ID
+% NT: import_stmt (1) | L108-113
+P-025  import_stmt       -> KW_IMPORT import_name opt_as
 
-triton_decorator -> '@' ID '.' ID
+% NT: import_name (2) | L115-128
+P-026  import_name       -> TOKEN_IDENTIFIER
+P-027  import_name       -> import_name '.' TOKEN_IDENTIFIER
 
-opt_triton_decorator -> epsilon
-                     | triton_decorator opt_newlines
+% NT: opt_as (2) | L130-133
+P-028  opt_as            -> epsilon
+P-029  opt_as            -> KW_AS TOKEN_IDENTIFIER
 
-def_stmt        -> opt_triton_decorator KW_DEF ID '(' param_list_opt ')' ':' suite
+% NT: triton_decorator (1) | L135-142
+% Semantica: si lex(ID1)=triton y lex(ID2)=jit entonces triton_decorator_pending:=1
+P-030  triton_decorator  -> '@' TOKEN_IDENTIFIER '.' TOKEN_IDENTIFIER
 
-assign_stmt     -> ID OP expr
-% Nota: OP con lexema '=' actualiza symtab (asignacion)
+% NT: opt_triton_decorator (2) | L159-162
+P-031  opt_triton_decorator -> epsilon
+P-032  opt_triton_decorator -> triton_decorator opt_newlines
 
-if_stmt         -> KW_IF expr ':' suite elif_parts else_part
+% NT: def_stmt (1 cadena, 3 puntos de accion en yacc) | L144-157
+% Forma BNF equivalente a la secuencia yacc:
+%   [opt_triton_decorator] KW_DEF ID  {A}  '(' param_list_opt ')' ':' {B}  suite
+% A: current_func := lex(ID); param_pos_counter := 0
+% B: symtab_add_function(current_func, arity=param_list_opt, triton_jit=flag)
+P-033  def_stmt          -> opt_triton_decorator KW_DEF TOKEN_IDENTIFIER '(' param_list_opt ')' ':' suite
 
-elif_parts      -> epsilon
-                | elif_parts KW_ELIF expr ':' suite
+% NT: assign_stmt (1) | L209-216
+% Semantica: solo si lex(TOKEN_OPERATOR)='=' se registra variable en symtab
+P-034  assign_stmt       -> TOKEN_IDENTIFIER TOKEN_OPERATOR expr
 
-else_part       -> epsilon
-                | KW_ELSE ':' suite
+% NT: if_stmt (1) | L218-220
+P-035  if_stmt           -> KW_IF expr ':' suite elif_parts else_part
 
-while_stmt      -> KW_WHILE expr ':' suite
+% NT: elif_parts (2, recursivo a izquierda) | L222-225
+P-036  elif_parts        -> epsilon
+P-037  elif_parts        -> elif_parts KW_ELIF expr ':' suite
 
-for_stmt        -> KW_FOR ID KW_IN expr ':' suite
+% NT: else_part (2) | L227-230
+P-038  else_part         -> epsilon
+P-039  else_part         -> KW_ELSE ':' suite
 
-return_stmt     -> KW_RETURN expr
-                | KW_RETURN
+% NT: while_stmt (1) | L232-234
+P-040  while_stmt        -> KW_WHILE expr ':' suite
 
-pass_stmt       -> KW_PASS
+% NT: for_stmt (1) | L236-238
+P-041  for_stmt          -> KW_FOR TOKEN_IDENTIFIER KW_IN expr ':' suite
 
-expr_stmt       -> expr
+% NT: return_stmt (2) | L240-243
+P-042  return_stmt       -> KW_RETURN expr
+P-043  return_stmt       -> KW_RETURN
 
-% --- Parametros de funcion ---
-param_list_opt  -> epsilon
-                | param_list
+% NT: pass_stmt (1) | L245-247
+P-044  pass_stmt         -> KW_PASS
 
-param_list      -> param
-                | param_list ',' param
+% NT: expr_stmt (1) | L249-251
+P-045  expr_stmt         -> expr
 
-param           -> ID
-                | ID ':' expr
+% -----------------------------------------------------------------------------
+% 3. PARAMETROS DE FUNCION
+% -----------------------------------------------------------------------------
 
-% --- Expresiones ---
-expr            -> INT
-                | FLOAT
-                | STRING
-                | ID
-                | ID member_chain
-                | KW_NONE
-                | KW_TRUE
-                | KW_FALSE
-                | expr OP expr
-                | expr DELIM expr
-                | '(' arg_list_opt ')'
-                | '[' expr ']'
-                | '[' expr ':' expr ']'
-                | '[' expr ':' expr ',' expr ']'
-                | expr '[' subscript_list ']'
-                | call_expr
-                | unary_expr
+% NT: param_list_opt (2) | L164-167
+P-046  param_list_opt    -> epsilon
+P-047  param_list_opt    -> param_list
 
-opt_expr        -> epsilon
-                | expr
+% NT: param_list (2, lista separada por coma, recursiva) | L169-174
+P-048  param_list        -> param
+P-049  param_list        -> param_list ',' param
 
-unary_expr      -> OP expr
+% NT: param (2) | L176-187
+P-050  param             -> TOKEN_IDENTIFIER
+P-051  param             -> TOKEN_IDENTIFIER ':' expr
 
-member_chain    -> '.' ID
-                | member_chain '.' ID
-                | DELIM ID
-                | member_chain DELIM ID
+% -----------------------------------------------------------------------------
+% 4. EXPRESIONES, LLAMADAS, SUBINDICES Y ARGUMENTOS
+% -----------------------------------------------------------------------------
 
-call_expr       -> ID '(' arg_list_opt ')'
-                | ID member_chain '(' arg_list_opt ')'
-                | ID '(' ')'
+% NT: expr (16 alternativas) | L253-271
+% Precedencia resuelta por %left/%nonassoc en parser.y L64-70 (ver apendice)
+P-052  expr              -> TOKEN_INTEGER
+P-053  expr              -> TOKEN_FLOAT
+P-054  expr              -> TOKEN_STRING
+P-055  expr              -> TOKEN_IDENTIFIER
+P-056  expr              -> TOKEN_IDENTIFIER member_chain
+P-057  expr              -> KW_NONE
+P-058  expr              -> KW_TRUE
+P-059  expr              -> KW_FALSE
+P-060  expr              -> expr TOKEN_OPERATOR expr
+P-061  expr              -> expr TOKEN_DELIMITER expr
+P-062  expr              -> '(' arg_list_opt ')'
+P-063  expr              -> '[' expr ']'
+P-064  expr              -> '[' expr ':' expr ']'
+P-065  expr              -> '[' expr ':' expr ',' expr ']'
+P-066  expr              -> expr '[' subscript_list ']'
+P-067  expr              -> call_expr
+P-068  expr              -> unary_expr
 
-subscript_list  -> subscript
-                | subscript_list ',' subscript
+% NT: opt_expr (2) | L273-276
+P-069  opt_expr          -> epsilon
+P-070  opt_expr          -> expr
 
-subscript       -> expr
-                | KW_NONE
-                | ':' opt_expr
-                | opt_expr ':' opt_expr
-                | opt_expr ':' opt_expr ':' opt_expr
+% NT: unary_expr (1) | L291-293
+P-071  unary_expr        -> TOKEN_OPERATOR expr
 
-arg_list_opt    -> epsilon
-                | arg_list
+% NT: member_chain (4) | L295-300
+% Cubre atributos .name y formas con TOKEN_DELIMITER (p.ej. acceso tl.*)
+P-072  member_chain      -> '.' TOKEN_IDENTIFIER
+P-073  member_chain      -> member_chain '.' TOKEN_IDENTIFIER
+P-074  member_chain      -> TOKEN_DELIMITER TOKEN_IDENTIFIER
+P-075  member_chain      -> member_chain TOKEN_DELIMITER TOKEN_IDENTIFIER
 
-arg_list        -> arg
-                | arg_list ',' arg
+% NT: call_expr (3) | L302-306
+P-076  call_expr         -> TOKEN_IDENTIFIER '(' arg_list_opt ')'
+P-077  call_expr         -> TOKEN_IDENTIFIER member_chain '(' arg_list_opt ')'
+P-078  call_expr         -> TOKEN_IDENTIFIER '(' ')'
 
-arg             -> expr
-                | ID '=' expr
+% NT: subscript_list (2) | L278-281
+P-079  subscript_list    -> subscript
+P-080  subscript_list    -> subscript_list ',' subscript
 
-% --- Leyenda de terminales (alias en este listado) ---
+% NT: subscript (5) | L283-289
+% Incluye slices : , : , : con opt_expr opcional
+P-081  subscript         -> expr
+P-082  subscript         -> KW_NONE
+P-083  subscript         -> ':' opt_expr
+P-084  subscript         -> opt_expr ':' opt_expr
+P-085  subscript         -> opt_expr ':' opt_expr ':' opt_expr
+
+% NT: arg_list_opt (2) | L308-311
+P-086  arg_list_opt      -> epsilon
+P-087  arg_list_opt      -> arg_list
+
+% NT: arg_list (2) | L313-316
+P-088  arg_list          -> arg
+P-089  arg_list          -> arg_list ',' arg
+
+% NT: arg (2) | L318-321
+P-090  arg               -> expr
+P-091  arg               -> TOKEN_IDENTIFIER '=' expr
+
+% =============================================================================
+% TERMINALES EN parser.y (%token) - INVENTARIO COMPLETO
+% =============================================================================
+% Usados directamente en producciones de la CFG anterior:
+%   TOKEN_IDENTIFIER, TOKEN_INTEGER, TOKEN_FLOAT, TOKEN_STRING,
+%   TOKEN_OPERATOR, TOKEN_DELIMITER, TOKEN_NEWLINE, TOKEN_INDENT, TOKEN_DEDENT,
+%   KW_DEF, KW_RETURN, KW_IF, KW_ELIF, KW_ELSE, KW_WHILE, KW_FOR, KW_IN,
+%   KW_IMPORT, KW_AS, KW_PASS, KW_NONE, KW_TRUE, KW_FALSE,
+%   Literales: '@' '.' '(' ')' '[' ']' ':' ','
+%
+% Declarados en parser.y pero SIN regla gramatical que los consuma (reserva):
+%   TOKEN_COMMENT (700) - descartado en lexer antes del parser
+%   TOKEN_KEYWORD (101) - canal generico; el lexer emite KW_* especificos
+%   KW_BREAK, KW_CONTINUE, KW_AND, KW_OR, KW_NOT
+%   (si aparecen en fuente, el lexer puede emitirlos; no hay produccion stmt/expr)
+%
+% Errores (fuera de CFG, manejo del driver/lexer):
+%   TOKEN_ERROR (999) - BAD_ID, cadena sin cerrar, simbolo suelto '.'
+
+% =============================================================================
+% ALIAS USADOS EN DOCUMENTACION RESUMIDA (Seccion Analisis)
+% =============================================================================
 % ID=TOKEN_IDENTIFIER  INT=TOKEN_INTEGER  FLOAT=TOKEN_FLOAT  STRING=TOKEN_STRING
 % OP=TOKEN_OPERATOR    DELIM=TOKEN_DELIMITER
 % NEWLINE=TOKEN_NEWLINE  INDENT=TOKEN_INDENT  DEDENT=TOKEN_DEDENT
-% '(' ')' '[' ']' ':' ',' '.' '@' = literales en parser.y
-% KW_* = palabras reservadas reconocidas por el lexer (def, if, import, ...)

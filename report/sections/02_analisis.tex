@@ -19,7 +19,7 @@
 \end{itemize}
 
 \subsection{CFG (resumen)}
-La gramática formal completa (33 no terminales, todas las producciones de \texttt{parser.y}) se documenta en el \textbf{Apéndice~\ref{ap:cfg-completa}} (Listado~\ref{lst:cfg-completa}). El siguiente extracto resume las construcciones principales para lectura rápida en el análisis.
+La gramática formal completa (\textbf{33 no terminales}, \textbf{91 alternativas} numeradas P-001\ldots P-091, inventario en Tabla~\ref{tab:inventario-nt} del Apéndice~\ref{ap:cfg-completa}) se documenta en el Listado~\ref{lst:cfg-completa} y el bloque yacc Listado~\ref{lst:parser-y-gramatica}. El siguiente extracto resume las construcciones principales para lectura rápida en el análisis.
 
 \begin{lstlisting}[caption={CFG resumida del lenguaje .tri (Triton kernel subset)}]
 program       -> opt_newlines top_block opt_newlines
@@ -83,7 +83,25 @@ Comentarios & Patrón \texttt{\#[\^{})\textbackslash n]*} para no consumir \text
   \item Integración con \texttt{y.tab.h}; \texttt{yylex()} retorna códigos de token.
   \item Tokens sintéticos 910/911 (no en Cuadro~1 original; documentados en este reporte).
   \item Sin nuevos IDs en el Cuadro~1 oficial; trazabilidad numérica conservada.
+  \item \textbf{Detección \texttt{BAD\_ID}} (heredada del analizador léxico del equipo en \url{https://github.com/G4ndhiV/Analizador-lexico}): identificadores que contienen caracteres prohibidos (\texttt{\$}, acento grave, barra invertida, \texttt{?}, \texttt{!}) se reconocen con una regla Flex dedicada \emph{antes} que \texttt{ID}, emitiendo \texttt{LEXICAL\_ERROR} (999) sin fragmentar el lexema.
 \end{itemize}
+
+\subsection{Patrones léxicos: \texttt{BAD\_ID}}
+\begin{table}[H]
+\centering
+\caption{Caracteres invalidos en identificadores y patron Flex.}
+\label{tab:bad-id}
+\begin{tabular}{@{}llp{7.2cm}@{}}
+\toprule
+\textbf{Definición} & \textbf{Regex} & \textbf{Comportamiento} \\
+\midrule
+\texttt{BAD\_ID\_CHAR} & \texttt{[\$`{\textbackslash}?!]} & Conjunto de símbolos no permitidos en nombres. \\
+\texttt{BAD\_ID} & ver \texttt{lexer/lexico\_equipo\_11\_scanner.l} & Secuencias con al menos un carácter inválido; prioridad sobre \texttt{ID}. \\
+\texttt{ID} & \texttt{[a-zA-Z\_][a-zA-Z0-9\_]*} & Identificadores válidos (tabla 100). \\
+\bottomrule
+\end{tabular}
+\end{table}
+Mensaje emitido: \texttt{LEXICAL\_ERROR: ... (identificador con caracteres invalidos)}. El driver marca \texttt{lexical\_error\_seen} y termina con código de salida~2, sin reportar \texttt{PARSE\_OK}.
 
 \subsection{Trazabilidad token léxico $\rightarrow$ yacc}
 \begin{table}[H]
