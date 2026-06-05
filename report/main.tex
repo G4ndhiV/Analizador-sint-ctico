@@ -6,7 +6,7 @@
 
 \begin{abstract}
 \noindent
-\textbf{Resultados:} el analizador sintáctico \texttt{triton\_parser} obtiene \textbf{12/12 PASS} en la suite unitaria y \textbf{68/70 PARSE\_OK (97.1\%)} en el benchmark TRITONHEAL. Sobre kernels \textbf{válidos}, la tasa de aceptación es \textbf{100\% (68/68)}; los 2 rechazos son mutaciones inválidas (\texttt{k\_0040}, \texttt{k\_0058}) confirmadas con \texttt{ast.parse}. Este reporte documenta la CFG, el diseño yacc/Flex, las tablas de símbolos, los mensajes de error y la evidencia experimental con gráfica y tablas de resultados.
+\textbf{Resultados:} el analizador sintáctico \texttt{triton\_parser} obtiene \textbf{12/12 PASS} en la suite unitaria, \textbf{200/200 (100\%)} en las suites JSONL (\texttt{curated\_100} + \texttt{adversarial\_100}) y \textbf{58/70 PARSE\_OK (82.9\%)} en el benchmark TRITONHEAL. La métrica principal de validación es JSONL: \textbf{100\%} de kernels válidos aceptados y \textbf{100\%} de casos inválidos rechazados, sin falsos positivos ni falsos negativos. En el benchmark, 2 rechazos son mutaciones sintácticas sembradas; 10 adicionales corresponden a archivos con código suelto en columna~0 (inválido en Python). Este reporte documenta la CFG, el diseño yacc/Flex, las tablas de símbolos, los mensajes de error y la evidencia experimental.
 \end{abstract}
 
 \tableofcontents

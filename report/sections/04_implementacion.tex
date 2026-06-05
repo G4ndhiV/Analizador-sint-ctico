@@ -20,6 +20,7 @@ cd Analizador-sint-ctico
 make check-deps    # opcional
 make build
 make test          # 12 casos unitarios
+make jsonl-test    # 200 casos JSONL (curated + adversarial)
 make benchmark     # 70 kernels en benchmark/kernels/
 make figures
 make pdf           # requiere tectonic o latexmk
@@ -35,7 +36,7 @@ Misma política que el repositorio léxico del equipo (\texttt{Analizador-lexico
 \lstinputlisting[language=C, firstline=138, lastline=144, caption={Acción léxica: error por identificador con caracteres invalidos.}]{../lexer/lexico_equipo_11_scanner.l}
 
 \subsection{Fragmento: integración de indentación (lexer)}
-\lstinputlisting[language=C, firstline=230, lastline=280, caption={Pila de indentación y \texttt{yylex} wrapper.}]{../lexer/lexico_equipo_11_scanner.l}
+\lstinputlisting[language=C, firstline=364, lastline=420, caption={Detección de múltiples sentencias y \texttt{bol\_dedent\_token} (extracto).}]{../lexer/lexico_equipo_11_scanner.l}
 
 \subsection{Fragmento: reglas principales (yacc)}
 \lstinputlisting[language=C, firstline=70, lastline=145, caption={Producciones \texttt{program}, \texttt{stmt}, \texttt{def\_stmt} (extracto).}]{../parser/parser.y}
@@ -44,7 +45,7 @@ Misma política que el repositorio léxico del equipo (\texttt{Analizador-lexico
 \lstinputlisting[language=C, firstline=1, lastline=75, caption={Estructuras e inserción en symtab (extracto).}]{../parser/symtab.c}
 
 \subsection{Fragmento: manejo de errores}
-\lstinputlisting[language=C, firstline=320, lastline=335, caption={Función \texttt{yyerror}.}]{../parser/parser.y}
+\lstinputlisting[language=C, firstline=383, lastline=410, caption={Validación de fin de sentencia y \texttt{yyerror}.}]{../parser/parser.y}
 
 \subsection{Ejemplo de salida del parser (entregable 5)}
 Al analizar \texttt{triton\_kernel\_min.tri}:

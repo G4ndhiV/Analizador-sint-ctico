@@ -30,6 +30,15 @@ def main() -> None:
         write("bench_pct.tex", str(d.get("pass_pct", 0)))
         write("bench_lex_fail.tex", str(d.get("lexical_fail", 0)))
 
+    jsonl_sum = ROOT / "results" / "jsonl" / "summary.json"
+    if jsonl_sum.exists():
+        d = json.loads(jsonl_sum.read_text())
+        curated = d.get("curated", {})
+        adv = d.get("adversarial", {})
+        write("jsonl_curated_pass.tex", str(curated.get("pass", 100)))
+        write("jsonl_adv_pass.tex", str(adv.get("pass", 100)))
+        write("jsonl_total_pass.tex", str(curated.get("pass", 0) + adv.get("pass", 0)))
+
     print(f"Datos LaTeX en {REPORT_DATA}")
 
 

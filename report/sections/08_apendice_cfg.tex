@@ -2,7 +2,7 @@
 \section{Gramática libre de contexto completa}
 \label{ap:cfg-completa}
 
-Esta sección es la \textbf{referencia formal exhaustiva} del analizador: cada no terminal, cada alternativa de producción y cada terminal declarado en \texttt{parser/parser.y} quedan documentados sin omisiones. El listado numerado P-001\ldots P-091 en el Archivo~\ref{lst:cfg-completa} corresponde \textbf{uno a uno} con las 91 alternativas de las 33 reglas yacc (líneas 76--321).
+Esta sección es la \textbf{referencia formal exhaustiva} del analizador: cada no terminal, cada alternativa de producción y cada terminal declarado en \texttt{parser/parser.y} quedan documentados sin omisiones. El listado numerado P-001\ldots P-105 en el Archivo~\ref{lst:cfg-completa} corresponde a las 105 alternativas de las 36 reglas yacc (líneas 84--379).
 
 \subsection{Convenciones y notación}
 \begin{itemize}
@@ -23,8 +23,8 @@ Esta sección es la \textbf{referencia formal exhaustiva} del analizador: cada n
 \textbf{Concepto} & \textbf{Valor} \\
 \midrule
 Símbolo inicial (\texttt{\%start}) & \texttt{program} \\
-No terminales con producciones & 33 \\
-Alternativas de producción (total) & 91 \\
+No terminales con producciones & 36 \\
+Alternativas de producción (total) & 105 \\
 Archivo de implementación & \texttt{parser/parser.y} \\
 Archivo BNF documentado & \texttt{report/cfg/triton\_cfg.bnf} \\
 \bottomrule
@@ -58,7 +58,9 @@ Archivo BNF documentado & \texttt{report/cfg/triton\_cfg.bnf} \\
 \texttt{KW\_IF}, \texttt{KW\_ELIF}, \texttt{KW\_ELSE} & 101 & Condicionales \\
 \texttt{KW\_WHILE}, \texttt{KW\_FOR}, \texttt{KW\_IN} & 101 & Bucles \\
 \texttt{KW\_RETURN}, \texttt{KW\_PASS} & 101 & Control de flujo \\
+\texttt{KW\_IS} & 101 & Comparación de identidad (\texttt{is}) \\
 \texttt{KW\_NONE}, \texttt{KW\_TRUE}, \texttt{KW\_FALSE} & 101 & Constantes \\
+\texttt{TOKEN\_ASSIGN} & --- & Asignación (\texttt{=}) separada de operadores \\
 \texttt{'@'}, \texttt{'.'}, \texttt{'('}, \texttt{')'} & --- & Decorador, acceso, agrupación \\
 \texttt{'['}, \texttt{']'}, \texttt{':'}, \texttt{','} & --- & Subíndices, slices, listas \\
 \bottomrule
@@ -73,7 +75,7 @@ En \texttt{parser.y} (líneas 53--59) se declaran además \texttt{TOKEN\_COMMENT
 
 \begin{table}[H]
 \centering
-\caption{Directivas \texttt{\%left} / \texttt{\%nonassoc} en \texttt{parser.y} (L64--70).}
+\caption{Directivas \texttt{\%left} / \texttt{\%nonassoc} / \texttt{\%right} en \texttt{parser.y} (L71--78).}
 \label{tab:precedencia-cfg}
 \begin{tabular}{@{}cll@{}}
 \toprule
@@ -85,14 +87,15 @@ En \texttt{parser.y} (líneas 53--59) se declaran además \texttt{TOKEN\_COMMENT
 4 & no asoc. & \texttt{KW\_NOT} \\
 5 & izquierda & \texttt{TOKEN\_OPERATOR}, \texttt{TOKEN\_DELIMITER} (en \texttt{expr}) \\
 6 & no asoc. & \texttt{KW\_ELIF} \\
-7 (más alta) & no asoc. & \texttt{KW\_ELSE} \\
+7 & no asoc. & \texttt{KW\_ELSE} \\
+8 (más alta) & derecha & \texttt{KW\_IF} (expresión condicional) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \textit{Nota:} la jerarquía de \texttt{expr} está \textbf{colapsada} en un solo no terminal; la precedencia entre operadores concretos (\texttt{+}, \texttt{*}, etc.) depende del orden de lectura y de estas declaraciones, no de niveles \texttt{expr\_add}, \texttt{expr\_mul}, etc.
 
-\subsection{Inventario de no terminales (33)}
+\subsection{Inventario de no terminales (36)}
 \label{sub:inventario-nt}
 
 \begin{longtable}{@{}p{3.4cm}rcp{2.2cm}@{}}
@@ -113,16 +116,19 @@ En \texttt{parser.y} (líneas 53--59) se declaran además \texttt{TOKEN\_COMMENT
 \texttt{top\_line} & 2 & 006--007 & L91--94 \\
 \texttt{suite} & 2 & 008--009 & L189--192 \\
 \texttt{block\_body} & 2 & 010--011 & L194--197 \\
-\texttt{block\_stmt} & 3 & 012--014 & L199--203 \\
-\texttt{simple\_stmt} & 1 & 015 & L205--207 \\
-\texttt{stmt} & 9 & 016--024 & L96--106 \\
+\texttt{block\_stmt} & 2 & 014--015 & L210--216 \\
+\texttt{simple\_stmt} & 1 & 016 & L218--220 \\
+\texttt{stmt} & 10 & 017--026 & L106--117 \\
+\texttt{ident\_stmt} & 1 & 037 & L229--236 \\
+\texttt{ident\_op} & 2 & 038--039 & L238--241 \\
+\texttt{ident\_suffix} & 8 & 057--064 & L278--292 \\
 \texttt{import\_stmt} & 1 & 025 & L108--113 \\
 \texttt{import\_name} & 2 & 026--027 & L115--128 \\
 \texttt{opt\_as} & 2 & 028--029 & L130--133 \\
 \texttt{triton\_decorator} & 1 & 030 & L135--142 \\
 \texttt{opt\_triton\_decorator} & 2 & 031--032 & L159--162 \\
 \texttt{def\_stmt} & 1 & 033 & L144--157 \\
-\texttt{assign\_stmt} & 1 & 034 & L209--216 \\
+\texttt{assign\_stmt} & 1 & 036 & L222--227 \\
 \texttt{if\_stmt} & 1 & 035 & L218--220 \\
 \texttt{elif\_parts} & 2 & 036--037 & L222--225 \\
 \texttt{else\_part} & 2 & 038--039 & L227--230 \\

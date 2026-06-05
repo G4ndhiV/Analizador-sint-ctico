@@ -1,6 +1,6 @@
 ========================================================================
 INFORME JSONL — curated_100 + adversarial_100
-Generado: 2026-06-05T18:28:34Z
+Generado: 2026-06-05T18:35:48Z
 Parser:   /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/build/triton_parser
 ========================================================================
 

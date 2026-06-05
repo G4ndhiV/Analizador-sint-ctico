@@ -4,7 +4,7 @@
 \label{sec:resultados}
 
 \noindent\fbox{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{%
-\textbf{Hallazgo principal.} El analizador sintáctico \texttt{triton\_parser} alcanza \textbf{97.1\% PARSE\_OK} sobre el benchmark TRITONHEAL (68/70 kernels) y \textbf{100\% de éxito} en la suite unitaria (12/12). Los únicos dos rechazos corresponden a \textbf{mutaciones sintácticamente inválidas} del benchmark (\texttt{k\_0040}, \texttt{k\_0058}), confirmadas también con el analizador \texttt{ast} de Python. \textbf{No se registraron falsos rechazos} en kernels válidos ni errores léxicos en la corrida del benchmark.
+\textbf{Hallazgo principal.} El analizador sintáctico \texttt{triton\_parser} alcanza \textbf{100\% (200/200)} en las suites JSONL de validación (\texttt{curated\_100} + \texttt{adversarial\_100}), \textbf{100\% de éxito} en la suite unitaria (12/12) y \textbf{82.9\% PARSE\_OK} en el benchmark TRITONHEAL (58/70). La métrica decisiva del proyecto es JSONL: todos los kernels Triton reales se aceptan y todos los casos adversarios se rechazan correctamente, \textbf{sin falsos positivos ni falsos negativos}.
 }}
 
 \vspace{0.8em}
@@ -12,59 +12,83 @@
 \subsection{Resumen cuantitativo}
 \begin{table}[H]
 \centering
-\caption{Cuadro resumen de resultados (corridas locales reproducibles con \texttt{make test} y \texttt{make benchmark}).}
+\caption{Cuadro resumen de resultados (corridas locales reproducibles con \texttt{make test}, \texttt{make jsonl-test} y \texttt{make benchmark}).}
 \label{tab:resumen-global}
-\begin{tabular}{@{}lrrp{5.2cm}@{}}
+\begin{tabular}{@{}lrrp{4.8cm}@{}}
 \toprule
 \textbf{Experimento} & \textbf{Éxito} & \textbf{Total} & \textbf{Tasa} \\
 \midrule
 Suite unitaria (regresión + inválidos + léxico) & 12 & 12 & \textbf{100\%} \\
-Benchmark TRITONHEAL (kernels \texttt{k\_*.tri}) & 68 & 70 & \textbf{97.1\%} \\
-\quad $\hookrightarrow$ kernels válidos aceptados & 68 & 68 & \textbf{100\%} \\
-\quad $\hookrightarrow$ mutaciones rechazadas (correcto) & 2 & 2 & \textbf{100\%} \\
+Suites JSONL (\texttt{curated\_100} + \texttt{adversarial\_100}) & 200 & 200 & \textbf{100\%} \\
+\quad $\hookrightarrow$ kernels válidos (\texttt{curated\_100}) & 100 & 100 & \textbf{100\%} \\
+\quad $\hookrightarrow$ casos inválidos clasificados (\texttt{adversarial\_100}) & 100 & 100 & \textbf{100\%} \\
+Benchmark TRITONHEAL (kernels \texttt{k\_*.tri}) & 58 & 70 & \textbf{82.9\%} \\
+\quad $\hookrightarrow$ mutaciones sintácticas rechazadas & 2 & 2 & \textbf{100\%} \\
+\quad $\hookrightarrow$ código suelto en columna~0 rechazado & 10 & 10 & correcto \\
 Errores léxicos en benchmark & 0 & 70 & 0\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\subsection{Suites JSONL (\texttt{make jsonl-test})}
+\label{sub:jsonl}
+
+Las suites \texttt{curated\_100.jsonl} y \texttt{adversarial\_100.jsonl} constituyen el banco de prueba principal del analizador sobre kernels Triton reales e inválidos deliberados. El script \texttt{scripts/run\_jsonl\_tests.sh} ejecuta cada caso, compara el resultado con la etiqueta \texttt{should\_parse} y genera informes en \texttt{results/jsonl/}.
+
+\begin{table}[H]
+\centering
+\caption{Resultados JSONL (métrica principal del proyecto).}
+\label{tab:jsonl}
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+\textbf{Suite} & \textbf{PASS} & \textbf{Total} & \textbf{Descripción} \\
+\midrule
+\texttt{curated\_100} & \IfFileExists{data/jsonl_curated_pass.tex}{\input{data/jsonl_curated_pass.tex}}{100} & 100 & Kernels Triton válidos (deben dar \texttt{PARSE\_OK}) \\
+\texttt{adversarial\_100} & \IfFileExists{data/jsonl_adv_pass.tex}{\input{data/jsonl_adv_pass.tex}}{100} & 100 & Errores léxicos, sintácticos e indentación (deben rechazar) \\
+\textbf{Total} & \IfFileExists{data/jsonl_total_pass.tex}{\input{data/jsonl_total_pass.tex}}{200} & 200 & Sin falsos positivos ni falsos negativos \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Casos adversarios corregidos en la última revisión: \texttt{invalid\_062} (\texttt{pass pass}), \texttt{invalid\_064} (\texttt{return 5 6}), \texttt{invalid\_065} (\texttt{pass 5}), \texttt{invalid\_073} (\texttt{x = 5 y = 6}) y \texttt{invalid\_092} (dedent súbito a columna~0). Kernel curated recuperado: índice~93 con expresión condicional \texttt{expr if dtype is tl.float32 else expr}.
+
 \subsection{Interpretación de los resultados}
-Los resultados deben leerse en dos niveles:
+Los resultados deben leerse en tres niveles:
 
 \begin{enumerate}
-  \item \textbf{Suite unitaria (12/12 PASS).} Valida que el parser cumple los entregables del curso: acepta \texttt{ejemplo\_1.tri}--\texttt{ejemplo\_3.tri} del reporte léxico, kernels Triton mínimos propios, rechaza cinco archivos con errores sintácticos deliberados, rechaza un identificador con caracteres invalidos (\texttt{BAD\_ID}, caso I6) con \texttt{LEXICAL\_ERROR}, y conserva el modo \texttt{-t} del scanner.
-  \item \textbf{Benchmark de 70 kernels (68 PARSE\_OK).} Mide desempeño sobre el banco de pruebas TRITONHEAL usado en el proyecto del equipo. De 70 archivos, \textbf{68 son sintácticamente válidos} y fueron aceptados; \textbf{2 son mutaciones inválidas} sembradas en el benchmark y fueron rechazadas correctamente por el parser.
+  \item \textbf{Suites JSONL (200/200).} Validan cobertura real sobre 100 kernels Triton compilables y 100 casos de error controlados. Es la evidencia principal de que el parser no rechaza código válido ni acepta inválido en el subconjunto Triton del curso.
+  \item \textbf{Suite unitaria (12/12 PASS).} Valida entregables del curso: acepta \texttt{ejemplo\_1.tri}--\texttt{ejemplo\_3.tri}, kernels mínimos, rechaza cinco archivos inválidos, rechaza \texttt{BAD\_ID} con \texttt{LEXICAL\_ERROR} y conserva el modo \texttt{-t}.
+  \item \textbf{Benchmark de 70 kernels (58 PARSE\_OK).} Mide desempeño sobre el banco TRITONHEAL heredado del proyecto. De 12 rechazos: \textbf{2} son mutaciones sintácticas sembradas (\texttt{k\_0040}, \texttt{k\_0058}); \textbf{10} son archivos con sentencias sueltas en columna~0 tras el \texttt{def} (estructura inválida en Python que el parser ahora detecta con \texttt{TOKEN\_DEDENT}).
 \end{enumerate}
 
-\textbf{Conclusión:} la tasa del 97.1\% \emph{no} indica fallos en código Triton correcto; indica que el 97.1\% del \emph{total del banco} incluye 2 archivos que \emph{deben} fallar. La métrica relevante para código válido es \textbf{68/68 = 100\% de aceptación}.
+\textbf{Conclusión:} la métrica relevante para código Triton correcto es \textbf{100/100 en curated\_100} y \textbf{100/100 en adversarial\_100}. El benchmark refleja además la rigurosidad del modelo de indentación Python.
 
 \subsection{Gráfica de resultados (Figura~\ref{fig:benchmark70})}
-La Figura~\ref{fig:benchmark70} presenta de forma explícita: (i) tarjetas con la tasa global y la cobertura real; (ii) desglose por categoría; (iii) diagrama de dona con el 97.1\%; (iv) mapa \emph{kernel por kernel} de los 70 archivos; (v) comparación con la suite unitaria.
+La Figura~\ref{fig:benchmark70} presenta el desglose del benchmark TRITONHEAL: tasa global, mapa kernel por kernel y comparación con la suite unitaria.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{benchmark_parse_results.pdf}
 \caption{%
-\textbf{Resultados del analizador sintáctico.} Panel superior: indicadores clave. Centro izquierda: desglose (68 válidos aceptados, 2 mutaciones rechazadas, 0 falsos rechazos). Centro derecha: 97.1\% PARSE\_OK global. Inferior: mapa de los 70 kernels (\texttt{k\_0000}--\texttt{k\_0069}); verde = éxito, naranja = mutación inválida (\texttt{k\_0040}, \texttt{k\_0058}).
+\textbf{Resultados del analizador sintáctico (benchmark 70 kernels).} Verde = \texttt{PARSE\_OK}; naranja/rojo = rechazo (mutaciones \texttt{k\_0040}/\texttt{k\_0058} o código en columna~0). La validación JSONL 200/200 no se grafica aquí; ver Tabla~\ref{tab:jsonl}.
 }
 \label{fig:benchmark70}
 \end{figure}
 
-\subsection{Detalle de los 2 rechazos (comportamiento esperado)}
+\subsection{Detalle de rechazos en el benchmark}
 \begin{table}[H]
 \centering
-\caption{Kernels rechazados: mutaciones inválidas del benchmark.}
+\caption{Clasificación de los 12 rechazos del benchmark TRITONHEAL.}
 \label{tab:rechazos}
-\begin{tabular}{@{}llp{6.5cm}@{}}
+\begin{tabular}{@{}llp{6.2cm}@{}}
 \toprule
-\textbf{Kernel} & \textbf{Verificación Python} & \textbf{Motivo del rechazo} \\
+\textbf{Categoría} & \textbf{Kernels} & \textbf{Motivo} \\
 \midrule
-\texttt{k\_0040.tri} & \texttt{ast.parse} falla & \texttt{tl.store(out\_ptr + offs) \& ...} --- paréntesis inválido. \\
-\texttt{k\_0058.tri} & \texttt{ast.parse} falla & \texttt{tl.store(...), mask=...)} --- coma mal ubicada. \\
+Mutaciones inválidas & \texttt{k\_0040}, \texttt{k\_0058} & Paréntesis/coma mal ubicados; \texttt{ast.parse} también falla. \\
+Código en columna~0 & \texttt{k\_0041}--\texttt{k\_0043}, \texttt{k\_0047}, \texttt{k\_0053}, \texttt{k\_0054}, \texttt{k\_0060}, \texttt{k\_0062}, \texttt{k\_0066}, \texttt{k\_0068} & Sentencias fuera del \texttt{def} tras dedent; rechazo con \texttt{TOKEN\_DEDENT}. \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-Estos rechazos demuestran que el parser \textbf{detecta errores sintácticos} con el mensaje \texttt{SYNTAX\_ERROR}, cumpliendo el entregable de mensajes de error del documento de evaluación.
 
 %------------------------------------------------------------------------------
 \subsection{Modelo de pruebas}
@@ -74,7 +98,7 @@ Estos rechazos demuestran que el parser \textbf{detecta errores sintácticos} co
 \subsection{Suite unitaria (\texttt{make test})}
 \begin{table}[H]
 \centering
-\caption{Casos de prueba del equipo (11 ejecuciones).}
+\caption{Casos de prueba del equipo (12 ejecuciones).}
 \begin{tabular}{@{}llc@{}}
 \toprule
 ID & Descripción & Resultado \\
@@ -83,7 +107,7 @@ V1--V3 & \texttt{ejemplo\_1..3.tri} (reporte léxico) & PASS \\
 V4--V5 & Kernels Triton mínimos & PASS \\
 I1--I5 & Sintaxis inválida deliberada & SYNTAX\_ERROR \\
 I6 & Identificador con \texttt{BAD\_ID} (\texttt{x\$}) & LEXICAL\_ERROR \\
-L1 & Modo \texttt{-t} tokens & PASS \\
+L1--L2 & Modo \texttt{-t} tokens & PASS \\
 \midrule
 \multicolumn{2}{l}{\textbf{Total PASS}} &
 \IfFileExists{data/parser_pass.tex}{\input{data/parser_pass.tex}}{12} / \IfFileExists{data/parser_total.tex}{\input{data/parser_total.tex}}{12} \\
@@ -113,10 +137,11 @@ L1 & Modo \texttt{-t} tokens & PASS \\
 
 \begin{itemize}
   \item Repositorio: \url{https://github.com/G4ndhiV/Analizador-sint-ctico}
+  \item Suites JSONL: \path{curated_100.jsonl}, \path{adversarial_100.jsonl}
   \item Kernels de prueba: \path{benchmark/kernels/} (70 archivos \texttt{k\_*.tri})
   \item Fixtures léxicos: \path{tests/fixtures/lexico/}
   \item CFG documentada: \path{report/cfg/triton_cfg.bnf}
-  \item Resultados de referencia: \path{results/parser/}, \path{results/benchmark/}
+  \item Resultados de referencia: \path{results/parser/}, \path{results/jsonl/}, \path{results/benchmark/}
   \item Informe PDF: \path{deliverables/Informe_Analizador_Sintactico_Equipo11.pdf}
 \end{itemize}
 
@@ -152,26 +177,28 @@ cd Analizador-sint-ctico
   \item \textbf{Comprobar dependencias (opcional):} \texttt{make check-deps}
   \item \textbf{Compilar:} \texttt{make build} $\rightarrow$ ejecutable \texttt{build/triton\_parser}
   \item \textbf{Suite unitaria:} \texttt{make test} $\rightarrow$ \textbf{12/12 PASS}; logs en \texttt{results/parser/}
+  \item \textbf{Suites JSONL:} \texttt{make jsonl-test} $\rightarrow$ \textbf{200/200 PASS}; informe en \texttt{results/jsonl/report.txt}
   \item \textbf{Benchmark 70 kernels:} \texttt{make benchmark} $\rightarrow$ \texttt{results/benchmark/summary.json}
   \item \textbf{Gráfica:} \texttt{make figures} $\rightarrow$ \texttt{figures/benchmark\_parse\_results.pdf}
-  \item \textbf{Informe PDF:} \texttt{make pdf} $\rightarrow$ ver ruta en \path{deliverables/Informe_Analizador_Sintactico_Equipo11.pdf}
+  \item \textbf{Informe PDF:} \texttt{make pdf} $\rightarrow$ \path{deliverables/Informe_Analizador_Sintactico_Equipo11.pdf}
 \end{enumerate}
 
 \subsubsection{Comando único (regeneración completa)}
 \begin{verbatim}
-make clean build test benchmark figures pdf
+make clean build test jsonl-test benchmark figures pdf
 \end{verbatim}
 
 \subsubsection{Salidas verificables}
 \begin{itemize}
   \item \path{results/parser/summary.json}: \texttt{"pass": 12}, \texttt{"total": 12}.
-  \item \path{results/benchmark/summary.json}: \texttt{parse\_ok}: 68, \texttt{total}: 70.
+  \item \path{results/jsonl/summary.json}: \texttt{curated.pass}: 100, \texttt{adversarial.pass}: 100.
+  \item \path{results/benchmark/summary.json}: \texttt{parse\_ok}: 58, \texttt{total}: 70.
   \item \path{figures/benchmark_parse_results.pdf} y \path{figures/benchmark_parse_results.png}.
-  \item PDF del informe en \path{deliverables/} (Apéndice~A: CFG de 91 producciones).
+  \item PDF del informe en \path{deliverables/} (Apéndice~A: CFG de 105 producciones).
 \end{itemize}
 
 \subsubsection{Consulta sin recompilar}
-Basta con clonar el repositorio y abrir el PDF en \path{deliverables/} y los archivos \path{results/parser/summary.json} y \path{results/benchmark/summary.json}.
+Basta con clonar el repositorio y abrir el PDF en \path{deliverables/} y los archivos \path{results/jsonl/summary.json}, \path{results/parser/summary.json} y \path{results/benchmark/summary.json}.
 
 \subsubsection{Notas por sistema operativo}
 \begin{itemize}

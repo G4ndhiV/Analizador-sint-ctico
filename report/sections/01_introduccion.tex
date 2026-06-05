@@ -3,7 +3,7 @@
 \subsection{Resumen}
 Este documento presenta el análisis, diseño, implementación y verificación del \textbf{analizador sintáctico} para kernels \textbf{Triton GPU} escritos en archivos \texttt{.tri}. La fase sintáctica es la segunda etapa del compilador del reto académico: consume la secuencia de tokens producida por el analizador léxico (Flex) del Equipo~11, construye una estructura conforme a una gramática libre de contexto (CFG) implementada con \textbf{yacc/Bison}, actualiza tablas de símbolos y reporta errores sintácticos.
 
-El entregable incluye: (i) gramática documentada (Apéndice~\ref{ap:cfg-completa}, CFG completa); (ii) tablas de símbolos; (iii) implementación \texttt{triton\_parser}; (iv) mensajes de error; (v) \textbf{resultados experimentales} con énfasis en la Sección~\ref{sec:resultados}: \textbf{100\%} suite unitaria, \textbf{97.1\%} benchmark (68/70), \textbf{100\%} en kernels válidos, y gráfica detallada de los 70 kernels.
+El entregable incluye: (i) gramática documentada (Apéndice~\ref{ap:cfg-completa}, CFG completa); (ii) tablas de símbolos; (iii) implementación \texttt{triton\_parser}; (iv) mensajes de error; (v) \textbf{resultados experimentales} con énfasis en la Sección~\ref{sec:resultados}: \textbf{100\%} suite unitaria (12/12), \textbf{100\%} suites JSONL (200/200), benchmark TRITONHEAL (58/70) y gráfica de los 70 kernels.
 
 \subsection{Notación}
 \begin{itemize}

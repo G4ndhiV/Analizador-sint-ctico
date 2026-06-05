@@ -12,22 +12,29 @@
 \subsection{Requerimientos funcionales}
 \begin{itemize}
   \item Reconocer programas \texttt{.tri}: imports, \texttt{@triton.jit}, \texttt{def}, cuerpos indentados.
-  \item Sentencias: asignación, \texttt{if/elif/else}, \texttt{while}, \texttt{for/in}, \texttt{return}, \texttt{pass}.
-  \item Expresiones: literales, operadores (500), llamadas \texttt{tl.*}, subíndices \texttt{[:, None]}, argumentos con nombre (\texttt{mask=}, \texttt{dtype=}).
+  \item Sentencias: asignación (\texttt{ident\_stmt}, anotada \texttt{id : tipo =}), \texttt{if/elif/else}, \texttt{while}, \texttt{for/in}, \texttt{return}, \texttt{pass}.
+  \item Expresiones: literales, operadores (500), operador \texttt{is}, expresión condicional (\texttt{expr if expr else expr}), llamadas \texttt{tl.*}, subíndices \texttt{[:, None]}, argumentos con nombre (\texttt{mask=}, \texttt{dtype=}).
+  \item Validación de línea: rechazo de múltiples sentencias en la misma línea (lexer + \texttt{validate\_stmt\_line\_end}).
+  \item Indentación: \texttt{DEDENT} automático cuando una línea comienza en columna~0 tras un bloque indentado.
   \item Rechazar sintaxis inválida con \texttt{SYNTAX\_ERROR} en español.
   \item Actualizar symtab: imports, funciones, parámetros, variables.
 \end{itemize}
 
 \subsection{CFG (resumen)}
-La gramática formal completa (\textbf{33 no terminales}, \textbf{91 alternativas} numeradas P-001\ldots P-091, inventario en Tabla~\ref{tab:inventario-nt} del Apéndice~\ref{ap:cfg-completa}) se documenta en el Listado~\ref{lst:cfg-completa} y el bloque yacc Listado~\ref{lst:parser-y-gramatica}. El siguiente extracto resume las construcciones principales para lectura rápida en el análisis.
+La gramática formal completa (\textbf{36 no terminales}, \textbf{105 alternativas} numeradas P-001\ldots P-105, inventario en Tabla~\ref{tab:inventario-nt} del Apéndice~\ref{ap:cfg-completa}) se documenta en el Listado~\ref{lst:cfg-completa} y el bloque yacc Listado~\ref{lst:parser-y-gramatica}. El siguiente extracto resume las construcciones principales para lectura rápida en el análisis.
 
 \begin{lstlisting}[caption={CFG resumida del lenguaje .tri (Triton kernel subset)}]
 program       -> opt_newlines top_block opt_newlines
 top_block     -> top_block top_line | epsilon
 top_line      -> stmt | stmt NEWLINE
 
-stmt          -> import_stmt | def_stmt | assign_stmt | if_stmt
+stmt          -> import_stmt | def_stmt | assign_stmt | ident_stmt | if_stmt
               | while_stmt | for_stmt | return_stmt | pass_stmt | expr_stmt
+
+ident_stmt    -> TOKEN_IDENTIFIER ident_op
+ident_op      -> TOKEN_ASSIGN expr | ident_suffix
+
+block_stmt    -> stmt TOKEN_NEWLINE | stmt   /* validate_stmt_line_end */
 
 import_stmt   -> KW_IMPORT import_name opt_as
 import_name   -> ID | import_name '.' ID
@@ -39,8 +46,10 @@ def_stmt      -> opt_triton_decorator KW_DEF ID '(' param_list_opt ')' ':' suite
 suite         -> simple_stmt
               | opt_newlines INDENT block_body DEDENT
 
-expr          -> literal | ID | ID member_chain
-              | expr OP expr | expr '[' subscript_list ']'
+expr          -> literal | ID ident_suffix
+              | expr OP expr | expr KW_IS expr
+              | expr KW_IF expr KW_ELSE expr
+              | expr '[' subscript_list ']'
               | '(' arg_list_opt ')' | call_expr | unary_expr
 
 subscript     -> expr | NONE | ':' opt_expr | opt_expr ':' opt_expr
@@ -84,6 +93,8 @@ Comentarios & Patrón \texttt{\#[\^{})\textbackslash n]*} para no consumir \text
   \item Tokens sintéticos 910/911 (no en Cuadro~1 original; documentados en este reporte).
   \item Sin nuevos IDs en el Cuadro~1 oficial; trazabilidad numérica conservada.
   \item \textbf{Detección \texttt{BAD\_ID}} (heredada del analizador léxico del equipo en \url{https://github.com/G4ndhiV/Analizador-lexico}): identificadores que contienen caracteres prohibidos (\texttt{\$}, acento grave, barra invertida, \texttt{?}, \texttt{!}) se reconocen con una regla Flex dedicada \emph{antes} que \texttt{ID}, emitiendo \texttt{LEXICAL\_ERROR} (999) sin fragmentar el lexema.
+  \item \textbf{Múltiples sentencias en la misma línea}: el wrapper \texttt{yylex()} detecta patrones inválidos (\texttt{pass pass}, \texttt{return 5 6}, \texttt{x = 5 y = 6}, etc.) y marca \texttt{syntax\_error\_seen}.
+  \item \textbf{DEDENT en columna~0}: si un identificador inicia una línea sin espacios previos y la pila de indentación está activa, se emite \texttt{TOKEN\_DEDENT} antes del token (cierre de bloque Python).
 \end{itemize}
 
 \subsection{Patrones léxicos: \texttt{BAD\_ID}}

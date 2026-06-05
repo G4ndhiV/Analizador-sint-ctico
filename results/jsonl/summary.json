@@ -13,7 +13,7 @@
     "pass_rate": 100.0,
     "failures": []
   },
-  "timestamp": "2026-06-05T18:28:34Z",
+  "timestamp": "2026-06-05T18:35:48Z",
   "artifacts": {
     "report": "/Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/report.txt",
     "details": "/Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/details.json",
