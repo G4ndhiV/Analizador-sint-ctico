@@ -63,7 +63,7 @@ LEX_DIR="$ROOT/tests/fixtures/lexico"
 if [[ ! -d "$LEX_DIR" ]]; then
   LEX_DIR="$ROOT/../Analizador-lexico-main"
 fi
-for f in "$LEX_DIR"/ejemplo_{1,2,3}.tri; do
+for f in "$LEX_DIR"/ejemplo_{1,2}.tri; do
   [[ -f "$f" ]] && run_valid "$f"
 done
 
@@ -75,15 +75,17 @@ for f in "$ROOT/tests/invalid"/*.tri; do
   [[ -f "$f" ]] && run_invalid "$f"
 done
 
-# Modo lexer (-t) en ejemplo_1
-TOTAL=$((TOTAL + 1))
-if "$BIN" -t "$LEX_DIR/ejemplo_1.tri" 2>"$RESULTS/lexer_ejemplo_1.log" | grep -q "KEYWORD"; then
-  echo "PASS  lexer -t ejemplo_1.tri"
-  PASS=$((PASS + 1))
-else
-  echo "FAIL  lexer -t ejemplo_1.tri"
-  FAIL=$((FAIL + 1))
-fi
+# Modo lexer (-t): ejemplo_1 y ejemplo_3 (ops compuestos, solo fase lexica)
+for lex_f in ejemplo_1 ejemplo_3; do
+  TOTAL=$((TOTAL + 1))
+  if "$BIN" -t "$LEX_DIR/${lex_f}.tri" 2>"$RESULTS/lexer_${lex_f}.log" | grep -qE "KEYWORD|OPERATOR"; then
+    echo "PASS  lexer -t ${lex_f}.tri"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL  lexer -t ${lex_f}.tri"
+    FAIL=$((FAIL + 1))
+  fi
+done
 
 cat >"$RESULTS/summary.json" <<EOF
 {

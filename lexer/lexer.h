@@ -12,5 +12,8 @@ extern FILE *yyin;
 void print_symbol_tables(void);
 void lexer_reset_for_parse(void);
 const char *lexeme_by_id(int token, int index);
+int yypeek(void);
+void yyunput(int tok);
+int lexer_peek_fresh_line(void);
 
 #endif

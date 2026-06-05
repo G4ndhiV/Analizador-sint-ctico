@@ -10,6 +10,7 @@ extern int yylex(void);
 extern int yyparse(void);
 extern int yydebug;
 extern int lexical_error_seen;
+extern int syntax_error_seen;
 
 static void usage(const char *prog) {
     fprintf(stderr, "Uso: %s [-t] [-d] <archivo.tri>\n", prog);
@@ -59,13 +60,26 @@ int main(int argc, char **argv) {
     lexer_reset_for_parse();
     symtab_reset();
 
+    syntax_error_seen = 0;
     rc = yyparse();
+
+    if (rc == 0 && !syntax_error_seen) {
+        int extra;
+        while ((extra = yylex()) != 0) {
+            syntax_error_seen = 1;
+            fprintf(stderr,
+                    "SYNTAX_ERROR: line=%d near='' message='tokens extra tras fin de programa'\n",
+                    line_no);
+            break;
+        }
+    }
+
     fclose(yyin);
 
     if (lexical_error_seen) {
         return 2;
     }
-    if (rc != 0) {
+    if (rc != 0 || syntax_error_seen) {
         return 1;
     }
 

@@ -17,7 +17,7 @@ endif
 YACC = $(BISON)
 LEX  = $(FLEX)
 
-.PHONY: all build test benchmark figures pdf clean check-deps
+.PHONY: all build test jsonl-test benchmark figures pdf clean check-deps
 
 all: build
 
@@ -43,6 +43,10 @@ $(BUILD)/triton_parser: $(BUILD)/y.tab.c $(BUILD)/lex.yy.c parser/symtab.c src/d
 
 test: build
 	bash tests/run_tests.sh
+
+jsonl-test: build
+	chmod +x scripts/run_jsonl_tests.sh
+	./scripts/run_jsonl_tests.sh
 
 benchmark: build
 	chmod +x scripts/run_benchmark_kernels.sh

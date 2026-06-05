@@ -7,9 +7,12 @@
 #include "lexer.h"
 
 extern int yylex(void);
+extern int yypeek(void);
+extern int lexer_peek_fresh_line(void);
 extern int yylineno;
 void yyerror(const char *msg);
 int yydebug = 0;
+int syntax_error_seen = 0;
 
 static char current_func[256] = "";
 static int param_pos_counter = 0;
@@ -35,6 +38,7 @@ static const char *str_text(int idx) {
 static int delim_is(const char *s, const char *ch) {
     return s && ch && strcmp(s, ch) == 0;
 }
+
 %}
 
 %define parse.error verbose
@@ -48,6 +52,7 @@ static int delim_is(const char *s, const char *ch) {
 %token <i> TOKEN_FLOAT 300
 %token <i> TOKEN_STRING 400
 %token <s> TOKEN_OPERATOR 500
+%token <s> TOKEN_ASSIGN
 %token <s> TOKEN_DELIMITER 600
 %token <s> TOKEN_KEYWORD 101
 %token TOKEN_COMMENT 700
@@ -58,7 +63,7 @@ static int delim_is(const char *s, const char *ch) {
 %token KW_IMPORT KW_AS KW_PASS KW_NONE KW_TRUE KW_FALSE
 %token KW_BREAK KW_CONTINUE KW_AND KW_OR KW_NOT
 
-%type <i> expr param_list param_list_opt param unary_expr call_expr opt_expr subscript
+%type <i> expr param_list param_list_opt param unary_expr call_expr opt_expr subscript list_expr line_end
 %type <s> opt_as import_name
 
 %left TOKEN_NEWLINE
@@ -85,12 +90,14 @@ opt_newlines
 
 top_block
     : /* empty */
-    | top_block top_line
+    | top_block opt_newlines top_line
     ;
 
 top_line
-    : stmt
-    | stmt TOKEN_NEWLINE
+    : import_stmt
+    | import_stmt TOKEN_NEWLINE
+    | def_stmt
+    | def_stmt TOKEN_NEWLINE
     ;
 
 stmt
@@ -148,9 +155,9 @@ def_stmt
           current_func[sizeof(current_func) - 1] = '\0';
           param_pos_counter = 0;
       }
-      '(' param_list_opt ')' ':'
+      '(' opt_newlines param_list_opt opt_newlines ')' ':'
       {
-          symtab_add_function(current_func, line_no, $6, triton_decorator_pending);
+          symtab_add_function(current_func, line_no, $3, triton_decorator_pending);
           triton_decorator_pending = 0;
       }
       suite
@@ -169,7 +176,7 @@ param_list_opt
 param_list
     : param
       { $$ = 1; }
-    | param_list ',' param
+    | param_list opt_newlines ',' opt_newlines param
       { $$ = $1 + 1; }
     ;
 
@@ -179,7 +186,7 @@ param
           symtab_add_param(current_func, id_text($1), param_pos_counter++, "", line_no);
           $$ = 1;
       }
-    | TOKEN_IDENTIFIER ':' expr
+    | TOKEN_IDENTIFIER ':' opt_newlines expr
       {
           symtab_add_param(current_func, id_text($1), param_pos_counter++, "", line_no);
           $$ = 1;
@@ -193,13 +200,26 @@ suite
 
 block_body
     : /* empty */
-    | block_body block_stmt
+    | block_body opt_newlines block_stmt
     ;
 
 block_stmt
-    : stmt
-    | block_body TOKEN_NEWLINE
-    | block_body TOKEN_NEWLINE stmt
+    : stmt line_end
+    ;
+
+line_end
+    : TOKEN_NEWLINE
+    | %empty
+      {
+          int fresh = lexer_peek_fresh_line();
+          int t = yypeek();
+          if (t == TOKEN_DEDENT || t == 0 || fresh) {
+              $$ = 1;
+          } else {
+              yyerror("multiples sentencias en la misma linea");
+              $$ = 0;
+          }
+      }
     ;
 
 simple_stmt
@@ -207,11 +227,13 @@ simple_stmt
     ;
 
 assign_stmt
-    : TOKEN_IDENTIFIER TOKEN_OPERATOR expr
+    : TOKEN_IDENTIFIER TOKEN_ASSIGN expr
       {
-          if (delim_is($2, "=")) {
-              symtab_add_variable(id_text($1), line_no, current_func[0] ? current_func : "global");
-          }
+          symtab_add_variable(id_text($1), line_no, current_func[0] ? current_func : "global");
+      }
+    | TOKEN_IDENTIFIER ':' expr TOKEN_ASSIGN expr
+      {
+          symtab_add_variable(id_text($1), line_no, current_func[0] ? current_func : "global");
       }
     ;
 
@@ -259,12 +281,16 @@ expr
     | KW_NONE { $$ = 0; }
     | KW_TRUE { $$ = 0; }
     | KW_FALSE { $$ = 0; }
-    | expr TOKEN_OPERATOR expr { $$ = 0; }
-    | expr TOKEN_DELIMITER expr { $$ = 0; }
-    | '(' arg_list_opt ')' { $$ = 0; }
-    | '[' expr ']' { $$ = $2; }
-    | '[' expr ':' expr ']' { $$ = 0; }
-    | '[' expr ':' expr ',' expr ']' { $$ = 0; }
+    | expr TOKEN_OPERATOR opt_newlines expr
+      {
+          if (delim_is($2, "=")) {
+              yyerror("asignacion invalida dentro de expresion");
+          }
+          $$ = 0;
+      }
+    | expr TOKEN_DELIMITER opt_newlines expr { $$ = 0; }
+    | '(' opt_newlines arg_list_opt opt_newlines ')' { $$ = 0; }
+    | list_expr { $$ = 0; }
     | expr '[' subscript_list ']' { $$ = 0; }
     | call_expr { $$ = 0; }
     | unary_expr { $$ = $1; }
@@ -289,20 +315,32 @@ subscript
     ;
 
 unary_expr
-    : TOKEN_OPERATOR expr { $$ = $2; }
+    : TOKEN_OPERATOR expr
+      {
+          if (delim_is($1, "*") || delim_is($1, "/")) {
+              yyerror("operador unario no permitido");
+          }
+          $$ = $2;
+      }
+    ;
+
+list_expr
+    : '[' opt_newlines arg_list_opt opt_newlines ']'
+      { $$ = 0; }
     ;
 
 member_chain
-    : '.' TOKEN_IDENTIFIER
-    | member_chain '.' TOKEN_IDENTIFIER
-    | TOKEN_DELIMITER TOKEN_IDENTIFIER
-    | member_chain TOKEN_DELIMITER TOKEN_IDENTIFIER
+    : '.' opt_newlines TOKEN_IDENTIFIER
+    | member_chain '.' opt_newlines TOKEN_IDENTIFIER
+    | TOKEN_DELIMITER opt_newlines TOKEN_IDENTIFIER
+    | member_chain TOKEN_DELIMITER opt_newlines TOKEN_IDENTIFIER
     ;
 
 call_expr
-    : TOKEN_IDENTIFIER '(' arg_list_opt ')' { $$ = 0; }
-    | TOKEN_IDENTIFIER member_chain '(' arg_list_opt ')' { $$ = 0; }
-    | TOKEN_IDENTIFIER '(' ')' { $$ = 0; }
+    : TOKEN_IDENTIFIER '(' opt_newlines arg_list_opt opt_newlines ')' { $$ = 0; }
+    | TOKEN_IDENTIFIER member_chain '(' opt_newlines arg_list_opt opt_newlines ')' { $$ = 0; }
+    | TOKEN_IDENTIFIER '(' opt_newlines ')' { $$ = 0; }
+    | call_expr '.' TOKEN_IDENTIFIER '(' opt_newlines arg_list_opt opt_newlines ')' { $$ = 0; }
     ;
 
 arg_list_opt
@@ -312,17 +350,18 @@ arg_list_opt
 
 arg_list
     : arg
-    | arg_list ',' arg
+    | arg_list ',' opt_newlines arg
     ;
 
 arg
     : expr
-    | TOKEN_IDENTIFIER '=' expr
+    | TOKEN_IDENTIFIER TOKEN_ASSIGN opt_newlines expr
     ;
 
 %%
 
 void yyerror(const char *msg) {
+    syntax_error_seen = 1;
     fprintf(stderr, "SYNTAX_ERROR: line=%d near='' message='%s'\n", line_no, msg);
 }
 

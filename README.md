@@ -42,6 +42,7 @@ make check-deps    # opcional: verificar herramientas
 ```bash
 make build                    # genera build/triton_parser
 make test                     # suite unitaria: 12/12 PASS
+make jsonl-test               # curated_100.jsonl + adversarial_100.jsonl (kernels Triton reales)
 make benchmark                # 70 kernels en benchmark/kernels/
 make figures                  # figures/benchmark_parse_results.pdf
 ```
@@ -76,6 +77,11 @@ make clean build test benchmark figures pdf
 |------|-----------|
 | `build/triton_parser` | Ejecutable del analizador |
 | `results/parser/summary.json` | Resumen suite (12 pruebas) |
+| `results/jsonl/report.txt` | Informe legible: los 100 PASS y FAIL de cada suite |
+| `results/jsonl/curated_pass.txt` / `curated_fail.txt` | Listas curated que pasan / fallan |
+| `results/jsonl/adversarial_pass.txt` / `adversarial_fail.txt` | Listas adversarial correctas / incorrectas |
+| `results/jsonl/details.json` | Detalle JSON de los 200 casos |
+| `results/jsonl/summary.json` | Resumen numerico JSON |
 | `results/benchmark/summary.json` | Resumen benchmark (68/70 PARSE_OK) |
 | `figures/benchmark_parse_results.pdf` | Gráfica de resultados |
 | `deliverables/Informe_Analizador_Sintactico_Equipo11.pdf` | Informe IEEE-830 |

@@ -35,7 +35,33 @@ static int indent_depth = 1;
 static int pending_tokens[64];
 static int pending_count = 0;
 static int at_line_start = 1;
+static int fresh_line = 0;
+static int line_has_ws = 0;
+static int paren_depth = 0;
+static int bracket_depth = 0;
+static int indent_kind[256];
+static int peek_token = 0;
+static int peek_valid = 0;
+static int peek_fresh_line = 0;
+static int token_is_fresh = 0;
+static YYSTYPE peek_yylval;
 static char lexeme_buf[MAX_LEXEME_LEN];
+
+#define INDENT_KIND_UNKNOWN (-1)
+#define INDENT_KIND_SPACES 0
+#define INDENT_KIND_TABS 1
+
+static void track_delim_char(char ch) {
+    if (ch == '(') {
+        paren_depth++;
+    } else if (ch == ')' && paren_depth > 0) {
+        paren_depth--;
+    } else if (ch == '[') {
+        bracket_depth++;
+    } else if (ch == ']' && bracket_depth > 0) {
+        bracket_depth--;
+    }
+}
 
 static int is_keyword(const char *lex);
 static int add_to_table(SymbolEntry *table, int *count, const char *lexeme);
@@ -46,7 +72,8 @@ static char *save_lexeme(const char *text);
 static int push_pending(int tok);
 static int pop_pending(void);
 static int indent_width(const char *text, int len);
-static int handle_indent(int width);
+static int indent_line_kind(const char *text, int len);
+static int handle_indent(int width, int kind);
 static int keyword_token(const char *lex);
 static int return_token(int tok, const char *lexeme);
 
@@ -67,8 +94,19 @@ ID              [a-zA-Z_][a-zA-Z0-9_]*
 /* BAD_ID: misma politica que Analizador-lexico (G4ndhiV/Analizador-lexico) */
 BAD_ID_CHAR     [$`\\?!]
 BAD_ID          ([a-zA-Z0-9_]+{BAD_ID_CHAR}+([a-zA-Z0-9_]|{BAD_ID_CHAR})*|{BAD_ID_CHAR}+[a-zA-Z0-9_]([a-zA-Z0-9_]|{BAD_ID_CHAR})*)
+HEXINT          0[xX][0-9a-fA-F]+
+INCOMPLETE_HEX  0[xX]
+BADHEX          0[xX][0-9a-fA-F]*[^0-9a-fA-F \t\n]
+OCTINT          0[oO][0-7]+
+BADOCT          0[oO][0-9]+
+BININT          0[bB][01]+
+BADBIN          0[bB][01]*[2-9a-zA-Z_]+|0[bB][^01 \t\n]
 INT             {DIGIT}+
 FLOAT           ({DIGIT}*\.{DIGIT}+([eE][+-]?{DIGIT}+)?|{DIGIT}+[eE][+-]?{DIGIT}+)
+BADFLOAT        {DIGIT}+\.{DIGIT}+\.|{DIGIT}+\.$|{DIGIT}+\.[eE][^0-9+\-]|{DIGIT}+[eE][^0-9+\-]
+SPACESHIP       "<=>"
+STRICT_EQ       "==="
+STRICT_NE       "!=="
 STRING          \"[^\"\n]*\"|\'[^\'\n]*\'
 STRING_UNCLOSED_LINE  \"[^\"\n]*\n|\'[^\'\n]*\n
 STRING_UNCLOSED_EOF   \"[^\"\n]*|\'[^\'\n]*
@@ -76,7 +114,7 @@ COMMENT         \#[^)\n]*
 WS_COUNT        ^[ \t]+
 WHITESPACE      [ \t]+
 NEWLINE         \n+
-OPERATOR        "**"|"=="|"!="|"<="|">="|"//"|"<<"|">>"|"+="|"-="|"*="|"/="|"%="|[=+\-*/%&^<>|~]
+OPERATOR        "**"|"=="|"!="|"<="|">="|"//"|"<<"|">>"|"+="|"-="|"*="|"/="|"%="|[+\-*/%&^<>|~]
 DELIMITER       [()\[\]{}.,;:@]|"->"
 
 %%
@@ -96,6 +134,47 @@ DELIMITER       [()\[\]{}.,;:@]|"->"
         yylval.i = idx;
         return TOKEN_FLOAT;
     }
+}
+
+{HEXINT} {
+    int idx = add_to_table(int_table, &int_count, yytext);
+    at_line_start = 0;
+    if (lexer_debug_mode) {
+        emit_token_ref(TOKEN_INTEGER, "INTEGER", yytext, idx);
+    } else if (parser_mode) {
+        yylval.i = idx;
+        return TOKEN_INTEGER;
+    }
+}
+
+{OCTINT} {
+    int idx = add_to_table(int_table, &int_count, yytext);
+    at_line_start = 0;
+    if (lexer_debug_mode) {
+        emit_token_ref(TOKEN_INTEGER, "INTEGER", yytext, idx);
+    } else if (parser_mode) {
+        yylval.i = idx;
+        return TOKEN_INTEGER;
+    }
+}
+
+{BININT} {
+    int idx = add_to_table(int_table, &int_count, yytext);
+    at_line_start = 0;
+    if (lexer_debug_mode) {
+        emit_token_ref(TOKEN_INTEGER, "INTEGER", yytext, idx);
+    } else if (parser_mode) {
+        yylval.i = idx;
+        return TOKEN_INTEGER;
+    }
+}
+
+{INCOMPLETE_HEX}|{BADHEX}|{BADOCT}|{BADBIN}|{BADFLOAT}|{SPACESHIP}|{STRICT_EQ}|{STRICT_NE} {
+    fprintf(stderr,
+            "LEXICAL_ERROR: token_id=<%d> line=%d lexeme=\"%s\" (literal u operador invalido)\n",
+            TOKEN_ERROR, line_no, yytext);
+    lexical_error_seen = 1;
+    at_line_start = 0;
 }
 
 {INT} {
@@ -157,10 +236,19 @@ DELIMITER       [()\[\]{}.,;:@]|"->"
         int idx = add_to_table(id_table, &id_count, yytext);
         if (lexer_debug_mode) {
             emit_token_ref(TOKEN_IDENTIFIER, "IDENTIFIER", yytext, idx);
-        } else if (parser_mode) {
-            yylval.i = idx;
-            return TOKEN_IDENTIFIER;
-        }
+    } else if (parser_mode) {
+        yylval.i = idx;
+        return TOKEN_IDENTIFIER;
+    }
+    }
+}
+
+"=" {
+    at_line_start = 0;
+    if (lexer_debug_mode) {
+        emit_token_simple(TOKEN_ASSIGN, "ASSIGN", yytext);
+    } else if (parser_mode) {
+        return return_token(TOKEN_ASSIGN, yytext);
     }
 }
 
@@ -183,6 +271,9 @@ DELIMITER       [()\[\]{}.,;:@]|"->"
         }
         if (strlen(yytext) == 1) {
             save_lexeme(yytext);
+            if (parser_mode) {
+                track_delim_char(yytext[0]);
+            }
             return (unsigned char)yytext[0];
         }
         return return_token(TOKEN_DELIMITER, yytext);
@@ -190,9 +281,17 @@ DELIMITER       [()\[\]{}.,;:@]|"->"
 }
 
 {WS_COUNT} {
-    if (parser_mode) {
+    line_has_ws = 1;
+    if (parser_mode && at_line_start) {
+        fresh_line = 1;
+    }
+    if (parser_mode && (paren_depth > 0 || bracket_depth > 0)) {
+        /* Dentro de () o []: sangria es espacio, no bloque Python. */
+        at_line_start = 0;
+    } else if (parser_mode) {
         int w = indent_width(yytext, yyleng);
-        int tok = handle_indent(w);
+        int kind = indent_line_kind(yytext, yyleng);
+        int tok = handle_indent(w, kind);
         if (tok != 0) {
             return tok;
         }
@@ -209,6 +308,8 @@ DELIMITER       [()\[\]{}.,;:@]|"->"
 {NEWLINE} {
     line_no += (int)strlen(yytext);
     at_line_start = 1;
+    fresh_line = 1;
+    line_has_ws = 0;
     if (lexer_debug_mode) {
         emit_token_simple(TOKEN_NEWLINE, "NEW_LINE", yytext);
     } else if (parser_mode) {
@@ -236,6 +337,13 @@ static char *save_lexeme(const char *text) {
 static int return_token(int tok, const char *lexeme) {
     save_lexeme(lexeme);
     return tok;
+}
+
+int lexer_peek_fresh_line(void) {
+    if (peek_valid) {
+        return peek_fresh_line;
+    }
+    return fresh_line || token_is_fresh;
 }
 
 static int push_pending(int tok) {
@@ -266,11 +374,52 @@ static int indent_width(const char *text, int len) {
     return w;
 }
 
-static int handle_indent(int width) {
+static int indent_line_kind(const char *text, int len) {
+    int i;
+    int has_space = 0;
+    int has_tab = 0;
+    for (i = 0; i < len; ++i) {
+        if (text[i] == ' ') {
+            has_space = 1;
+        } else if (text[i] == '\t') {
+            has_tab = 1;
+        }
+    }
+    if (has_tab && has_space) {
+        return -2;
+    }
+    if (has_tab) {
+        return INDENT_KIND_TABS;
+    }
+    if (has_space) {
+        return INDENT_KIND_SPACES;
+    }
+    return INDENT_KIND_UNKNOWN;
+}
+
+static int handle_indent(int width, int kind) {
     int top = indent_stack[indent_depth - 1];
+    if (kind == -2) {
+        fprintf(stderr,
+                "SYNTAX_ERROR: line=%d near='indent' message='Mezcla de tabuladores y espacios en indentacion'\n",
+                line_no);
+        lexical_error_seen = 1;
+        return TOKEN_ERROR;
+    }
     if (width > top) {
         if (indent_depth >= (int)(sizeof(indent_stack) / sizeof(indent_stack[0]))) {
             return TOKEN_ERROR;
+        }
+        if (kind != INDENT_KIND_UNKNOWN) {
+            if (indent_kind[indent_depth] == INDENT_KIND_UNKNOWN) {
+                indent_kind[indent_depth] = kind;
+            } else if (indent_kind[indent_depth] != kind) {
+                fprintf(stderr,
+                        "SYNTAX_ERROR: line=%d near='indent' message='Mezcla de tabuladores y espacios en indentacion'\n",
+                        line_no);
+                lexical_error_seen = 1;
+                return TOKEN_ERROR;
+            }
         }
         indent_stack[indent_depth++] = width;
         return TOKEN_INDENT;
@@ -287,6 +436,17 @@ static int handle_indent(int width) {
             return TOKEN_ERROR;
         }
         return pop_pending();
+    }
+    if (kind != INDENT_KIND_UNKNOWN) {
+        if (indent_kind[indent_depth - 1] == INDENT_KIND_UNKNOWN) {
+            indent_kind[indent_depth - 1] = kind;
+        } else if (indent_kind[indent_depth - 1] != kind) {
+            fprintf(stderr,
+                    "SYNTAX_ERROR: line=%d near='indent' message='Mezcla de tabuladores y espacios en indentacion'\n",
+                    line_no);
+            lexical_error_seen = 1;
+            return TOKEN_ERROR;
+        }
     }
     return 0;
 }
@@ -395,25 +555,71 @@ const char *lexeme_by_id(int token, int index) {
     return "";
 }
 
+int yypeek(void) {
+    if (!peek_valid) {
+        peek_token = yylex();
+        peek_yylval = yylval;
+        peek_fresh_line = token_is_fresh;
+        peek_valid = 1;
+    }
+    return peek_token;
+}
+
+void yyunput(int tok) {
+    peek_token = tok;
+    peek_yylval = yylval;
+    peek_valid = 1;
+}
+
 void lexer_reset_for_parse(void) {
+    int i;
     indent_depth = 1;
     indent_stack[0] = 0;
+    for (i = 0; i < (int)(sizeof(indent_kind) / sizeof(indent_kind[0])); ++i) {
+        indent_kind[i] = INDENT_KIND_UNKNOWN;
+    }
     pending_count = 0;
+    peek_valid = 0;
+    peek_token = 0;
+    peek_fresh_line = 0;
+    fresh_line = 0;
+    token_is_fresh = 0;
+    line_has_ws = 0;
     at_line_start = 1;
+    paren_depth = 0;
+    bracket_depth = 0;
     lexical_error_seen = 0;
 }
 
 int yylex(void) {
     int tok;
 
+    if (peek_valid) {
+        peek_valid = 0;
+        yylval = peek_yylval;
+        return peek_token;
+    }
+
     if (parser_mode) {
         tok = pop_pending();
+        if (tok == TOKEN_DEDENT && !at_line_start && !fresh_line) {
+            push_pending(tok);
+            tok = 0;
+        }
         if (tok != 0) {
             return tok;
         }
     }
 
     tok = yyflexlex();
+
+    if (parser_mode && tok != 0 && tok != TOKEN_NEWLINE && tok != TOKEN_COMMENT &&
+        tok != TOKEN_INDENT && tok != TOKEN_DEDENT) {
+        token_is_fresh = fresh_line;
+        fresh_line = 0;
+    } else {
+        token_is_fresh = 0;
+    }
 
     if (parser_mode && tok == 0) {
         while (indent_depth > 1) {
