@@ -1,4 +1,1 @@
-FAIL  invalid_062  [statement_errors]  esperado=REJECT  obtenido=PARSE_OK
-FAIL  invalid_064  [statement_errors]  esperado=REJECT  obtenido=PARSE_OK
-FAIL  invalid_065  [statement_errors]  esperado=REJECT  obtenido=PARSE_OK
-FAIL  invalid_092  [indentation_errors]  esperado=REJECT  obtenido=PARSE_OK
+

@@ -91,6 +91,7 @@ PASS  idx= 89  triton_per_fused_cat_native_layer_norm_8
 PASS  idx= 90  triton_per_fused_mean_rsub_2
 PASS  idx= 91  triton_per_fused_add_div_mul_sqrt_var_0
 PASS  idx= 92  triton_per_fused_native_group_norm_relu_0
+PASS  idx= 93  triton_per_fused_add_clamp_copy_index_mean_minimum_mul_remainder_rsub_sub_5
 PASS  idx= 94  triton_red_fused__softmax_mse_loss_mul_sqrt_1
 PASS  idx= 95  triton_per_fused__native_batch_norm_legit_convolution_relu_repeat_threshold_backward_1
 PASS  idx= 96  triton_per_fused__to_copy_add_div_mean_mul_ne_pow_rsub_sum_view_2

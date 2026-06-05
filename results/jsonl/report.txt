@@ -1,30 +1,30 @@
 ========================================================================
 INFORME JSONL — curated_100 + adversarial_100
-Generado: 2026-06-05T18:20:40Z
+Generado: 2026-06-05T18:28:34Z
 Parser:   /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/build/triton_parser
 ========================================================================
 
 RESUMEN
 ------------------------------------------------------------------------
-  curated_100     :  99 PASS /   1 FAIL  (99.0% PARSE_OK)
-  adversarial_100 :  96 PASS /   4 FAIL  (96.0% clasificacion correcta)
-  TOTAL           : 195 PASS /   5 FAIL  (de 200 casos)
+  curated_100     : 100 PASS /   0 FAIL  (100.0% PARSE_OK)
+  adversarial_100 : 100 PASS /   0 FAIL  (100.0% clasificacion correcta)
+  TOTAL           : 200 PASS /   0 FAIL  (de 200 casos)
 
 ARCHIVOS GENERADOS
 ------------------------------------------------------------------------
   /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/report.txt
   /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/summary.json
   /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/details.json
-  /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/curated_pass.txt  (99 lineas)
-  /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/curated_fail.txt  (1 lineas)
-  /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/adversarial_pass.txt  (96 lineas)
-  /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/adversarial_fail.txt  (4 lineas)
+  /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/curated_pass.txt  (100 lineas)
+  /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/curated_fail.txt  (0 lineas)
+  /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/adversarial_pass.txt  (100 lineas)
+  /Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/adversarial_fail.txt  (0 lineas)
 
 ========================================================================
 CURATED_100 — kernels validos (deben dar PARSE_OK)
 ========================================================================
 
---- PASS (99) ---
+--- PASS (100) ---
 PASS  idx=  0  triton_per_fused_add_div_mul_rsub_sum_0
 PASS  idx=  1  triton_poi_fused__softmax_div_isnan_masked_fill_sub_3
 PASS  idx=  2  triton_poi_fused_clone_0
@@ -118,6 +118,7 @@ PASS  idx= 89  triton_per_fused_cat_native_layer_norm_8
 PASS  idx= 90  triton_per_fused_mean_rsub_2
 PASS  idx= 91  triton_per_fused_add_div_mul_sqrt_var_0
 PASS  idx= 92  triton_per_fused_native_group_norm_relu_0
+PASS  idx= 93  triton_per_fused_add_clamp_copy_index_mean_minimum_mul_remainder_rsub_sub_5
 PASS  idx= 94  triton_red_fused__softmax_mse_loss_mul_sqrt_1
 PASS  idx= 95  triton_per_fused__native_batch_norm_legit_convolution_relu_repeat_threshold_backward_1
 PASS  idx= 96  triton_per_fused__to_copy_add_div_mean_mul_ne_pow_rsub_sum_view_2
@@ -125,14 +126,14 @@ PASS  idx= 97  triton_per_fused_add_mean_sqrt_var_0
 PASS  idx= 98  triton_per_fused_native_group_norm_relu_threshold_backward_0
 PASS  idx= 99  triton_per_fused__native_batch_norm_legit_mean_view_0
 
---- FAIL (1) ---
-FAIL  idx= 93  triton_per_fused_add_clamp_copy_index_mean_minimum_mul_remainder_rsub_sub_5  |  SYNTAX_ERROR: line=47 near='' message='multiples sentencias en la misma linea'
+--- FAIL (0) ---
+(ninguno)
 
 ========================================================================
 ADVERSARIAL_100 — clasificacion lexer/sintaxis/indentacion
 ========================================================================
 
---- PASS (96) ---
+--- PASS (100) ---
 PASS  invalid_001  [lexer_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_002  [lexer_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_003  [lexer_errors]  esperado=REJECT  obtenido=REJECT
@@ -194,7 +195,10 @@ PASS  invalid_058  [expression_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_059  [expression_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_060  [expression_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_061  [statement_errors]  esperado=REJECT  obtenido=REJECT
+PASS  invalid_062  [statement_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_063  [statement_errors]  esperado=REJECT  obtenido=REJECT
+PASS  invalid_064  [statement_errors]  esperado=REJECT  obtenido=REJECT
+PASS  invalid_065  [statement_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_066  [statement_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_067  [statement_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_068  [statement_errors]  esperado=REJECT  obtenido=REJECT
@@ -221,6 +225,7 @@ PASS  invalid_088  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_089  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_090  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_091  [indentation_errors]  esperado=REJECT  obtenido=REJECT
+PASS  invalid_092  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_093  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_094  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_095  [indentation_errors]  esperado=REJECT  obtenido=REJECT
@@ -230,9 +235,6 @@ PASS  invalid_098  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_099  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_100  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 
---- FAIL (4) ---
-FAIL  invalid_062  [statement_errors]  esperado=REJECT  obtenido=PARSE_OK
-FAIL  invalid_064  [statement_errors]  esperado=REJECT  obtenido=PARSE_OK
-FAIL  invalid_065  [statement_errors]  esperado=REJECT  obtenido=PARSE_OK
-FAIL  invalid_092  [indentation_errors]  esperado=REJECT  obtenido=PARSE_OK
+--- FAIL (0) ---
+(ninguno)
 

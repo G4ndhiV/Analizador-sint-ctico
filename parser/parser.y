@@ -8,7 +8,6 @@
 
 extern int yylex(void);
 extern int yypeek(void);
-extern int lexer_peek_fresh_line(void);
 extern int yylineno;
 void yyerror(const char *msg);
 int yydebug = 0;
@@ -39,6 +38,8 @@ static int delim_is(const char *s, const char *ch) {
     return s && ch && strcmp(s, ch) == 0;
 }
 
+static void validate_stmt_line_end(void);
+
 %}
 
 %define parse.error verbose
@@ -61,9 +62,10 @@ static int delim_is(const char *s, const char *ch) {
 %token TOKEN_DEDENT 911
 %token KW_DEF KW_RETURN KW_IF KW_ELIF KW_ELSE KW_WHILE KW_FOR KW_IN
 %token KW_IMPORT KW_AS KW_PASS KW_NONE KW_TRUE KW_FALSE
-%token KW_BREAK KW_CONTINUE KW_AND KW_OR KW_NOT
+%token KW_BREAK KW_CONTINUE KW_AND KW_OR KW_NOT KW_IS
 
-%type <i> expr param_list param_list_opt param unary_expr call_expr opt_expr subscript list_expr line_end
+%type <i> expr param_list param_list_opt param unary_expr call_expr opt_expr subscript list_expr
+%type <i> ident_suffix ident_op
 %type <s> opt_as import_name
 
 %left TOKEN_NEWLINE
@@ -73,6 +75,7 @@ static int delim_is(const char *s, const char *ch) {
 %left TOKEN_OPERATOR
 %nonassoc KW_ELIF
 %nonassoc KW_ELSE
+%right KW_IF
 
 %start program
 
@@ -104,6 +107,7 @@ stmt
     : import_stmt
     | def_stmt
     | assign_stmt
+    | ident_stmt
     | if_stmt
     | while_stmt
     | for_stmt
@@ -204,21 +208,10 @@ block_body
     ;
 
 block_stmt
-    : stmt line_end
-    ;
-
-line_end
-    : TOKEN_NEWLINE
-    | %empty
+    : stmt TOKEN_NEWLINE
+    | stmt
       {
-          int fresh = lexer_peek_fresh_line();
-          int t = yypeek();
-          if (t == TOKEN_DEDENT || t == 0 || fresh) {
-              $$ = 1;
-          } else {
-              yyerror("multiples sentencias en la misma linea");
-              $$ = 0;
-          }
+          validate_stmt_line_end();
       }
     ;
 
@@ -227,14 +220,24 @@ simple_stmt
     ;
 
 assign_stmt
-    : TOKEN_IDENTIFIER TOKEN_ASSIGN expr
+    : TOKEN_IDENTIFIER ':' expr TOKEN_ASSIGN expr
       {
           symtab_add_variable(id_text($1), line_no, current_func[0] ? current_func : "global");
       }
-    | TOKEN_IDENTIFIER ':' expr TOKEN_ASSIGN expr
+    ;
+
+ident_stmt
+    : TOKEN_IDENTIFIER ident_op
       {
-          symtab_add_variable(id_text($1), line_no, current_func[0] ? current_func : "global");
+          if ($2) {
+              symtab_add_variable(id_text($1), line_no, current_func[0] ? current_func : "global");
+          }
       }
+    ;
+
+ident_op
+    : TOKEN_ASSIGN expr { $$ = 1; }
+    | ident_suffix { $$ = 0; }
     ;
 
 if_stmt
@@ -272,12 +275,27 @@ expr_stmt
     : expr
     ;
 
+ident_suffix
+    : member_chain ident_suffix
+    | '[' subscript_list ']' ident_suffix
+    | '(' opt_newlines arg_list_opt opt_newlines ')' ident_suffix
+    | TOKEN_OPERATOR opt_newlines expr
+      {
+          if (delim_is($1, "=")) {
+              yyerror("asignacion invalida dentro de expresion");
+          }
+      }
+    | KW_IS expr
+    | KW_IF expr KW_ELSE expr %prec KW_ELSE
+    | TOKEN_DELIMITER opt_newlines expr
+    | %empty
+    ;
+
 expr
     : TOKEN_INTEGER { $$ = $1; }
     | TOKEN_FLOAT { $$ = $1; }
     | TOKEN_STRING { $$ = $1; }
-    | TOKEN_IDENTIFIER { $$ = $1; }
-    | TOKEN_IDENTIFIER member_chain { $$ = $1; }
+    | TOKEN_IDENTIFIER ident_suffix { $$ = $1; }
     | KW_NONE { $$ = 0; }
     | KW_TRUE { $$ = 0; }
     | KW_FALSE { $$ = 0; }
@@ -288,6 +306,8 @@ expr
           }
           $$ = 0;
       }
+    | expr KW_IS expr { $$ = 0; }
+    | expr KW_IF expr KW_ELSE expr %prec KW_ELSE { $$ = 0; }
     | expr TOKEN_DELIMITER opt_newlines expr { $$ = 0; }
     | '(' opt_newlines arg_list_opt opt_newlines ')' { $$ = 0; }
     | list_expr { $$ = 0; }
@@ -359,6 +379,30 @@ arg
     ;
 
 %%
+
+static void validate_stmt_line_end(void) {
+    int t = yypeek();
+    if (t == TOKEN_DEDENT || t == 0 || t == TOKEN_NEWLINE) {
+        return;
+    }
+    switch (t) {
+    case KW_PASS:
+    case KW_RETURN:
+    case KW_WHILE:
+    case KW_FOR:
+    case KW_IMPORT:
+    case KW_DEF:
+    case KW_ELIF:
+    case KW_ELSE:
+    case TOKEN_INTEGER:
+    case TOKEN_FLOAT:
+    case TOKEN_STRING:
+        yyerror("multiples sentencias en la misma linea");
+        break;
+    default:
+        break;
+    }
+}
 
 void yyerror(const char *msg) {
     syntax_error_seen = 1;

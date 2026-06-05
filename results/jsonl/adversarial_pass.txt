@@ -59,7 +59,10 @@ PASS  invalid_058  [expression_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_059  [expression_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_060  [expression_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_061  [statement_errors]  esperado=REJECT  obtenido=REJECT
+PASS  invalid_062  [statement_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_063  [statement_errors]  esperado=REJECT  obtenido=REJECT
+PASS  invalid_064  [statement_errors]  esperado=REJECT  obtenido=REJECT
+PASS  invalid_065  [statement_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_066  [statement_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_067  [statement_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_068  [statement_errors]  esperado=REJECT  obtenido=REJECT
@@ -86,6 +89,7 @@ PASS  invalid_088  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_089  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_090  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_091  [indentation_errors]  esperado=REJECT  obtenido=REJECT
+PASS  invalid_092  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_093  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_094  [indentation_errors]  esperado=REJECT  obtenido=REJECT
 PASS  invalid_095  [indentation_errors]  esperado=REJECT  obtenido=REJECT

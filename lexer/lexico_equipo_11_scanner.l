@@ -46,6 +46,12 @@ static int peek_fresh_line = 0;
 static int token_is_fresh = 0;
 static YYSTYPE peek_yylval;
 static char lexeme_buf[MAX_LEXEME_LEN];
+static int deferred_tok = 0;
+static YYSTYPE deferred_yylval;
+static int lex_prev = 0;
+static int lex_prev2 = 0;
+static int lex_prev_line = 0;
+static int saw_assign_this_line = 0;
 
 #define INDENT_KIND_UNKNOWN (-1)
 #define INDENT_KIND_SPACES 0
@@ -76,8 +82,13 @@ static int indent_line_kind(const char *text, int len);
 static int handle_indent(int width, int kind);
 static int keyword_token(const char *lex);
 static int return_token(int tok, const char *lexeme);
+static int bol_dedent_token(void);
+static void defer_token(int tok);
+static void lexer_note_token(int tok);
+static int lexer_multistmt_error(int tok);
 
 extern YYSTYPE yylval;
+extern int syntax_error_seen;
 
 /* Flex genera yyflexlex; el wrapper yylex maneja INDENT/DEDENT pendientes. */
 #define YY_DECL int yyflexlex(void)
@@ -225,6 +236,18 @@ DELIMITER       [()\[\]{}.,;:@]|"->"
 }
 
 {ID} {
+    if (parser_mode) {
+        int ded = bol_dedent_token();
+        if (ded != 0) {
+            if (is_keyword(yytext)) {
+                defer_token(return_token(keyword_token(yytext), yytext));
+            } else {
+                yylval.i = add_to_table(id_table, &id_count, yytext);
+                defer_token(TOKEN_IDENTIFIER);
+            }
+            return ded;
+        }
+    }
     at_line_start = 0;
     if (is_keyword(yytext)) {
         if (lexer_debug_mode) {
@@ -248,6 +271,7 @@ DELIMITER       [()\[\]{}.,;:@]|"->"
     if (lexer_debug_mode) {
         emit_token_simple(TOKEN_ASSIGN, "ASSIGN", yytext);
     } else if (parser_mode) {
+        saw_assign_this_line = 1;
         return return_token(TOKEN_ASSIGN, yytext);
     }
 }
@@ -310,6 +334,7 @@ DELIMITER       [()\[\]{}.,;:@]|"->"
     at_line_start = 1;
     fresh_line = 1;
     line_has_ws = 0;
+    saw_assign_this_line = 0;
     if (lexer_debug_mode) {
         emit_token_simple(TOKEN_NEWLINE, "NEW_LINE", yytext);
     } else if (parser_mode) {
@@ -337,6 +362,50 @@ static char *save_lexeme(const char *text) {
 static int return_token(int tok, const char *lexeme) {
     save_lexeme(lexeme);
     return tok;
+}
+
+static void defer_token(int tok) {
+    deferred_tok = tok;
+    deferred_yylval = yylval;
+}
+
+static int lexer_multistmt_error(int tok) {
+    if (!parser_mode || line_no != lex_prev_line) {
+        return 0;
+    }
+    if (tok == KW_PASS && lex_prev == KW_PASS) {
+        return 1;
+    }
+    if (tok == TOKEN_INTEGER && lex_prev == KW_PASS) {
+        return 1;
+    }
+    if (tok == TOKEN_INTEGER && lex_prev == TOKEN_INTEGER && lex_prev2 == KW_RETURN) {
+        return 1;
+    }
+    if (tok == TOKEN_IDENTIFIER && lex_prev == TOKEN_INTEGER && saw_assign_this_line) {
+        return 1;
+    }
+    return 0;
+}
+
+static void lexer_note_token(int tok) {
+    if (!parser_mode || tok == 0 || tok == TOKEN_NEWLINE || tok == TOKEN_COMMENT ||
+        tok == TOKEN_INDENT || tok == TOKEN_DEDENT) {
+        return;
+    }
+    lex_prev2 = lex_prev;
+    lex_prev = tok;
+    lex_prev_line = line_no;
+}
+
+static int bol_dedent_token(void) {
+    if (!parser_mode || !at_line_start || line_has_ws || indent_depth <= 1) {
+        return 0;
+    }
+    if (paren_depth > 0 || bracket_depth > 0) {
+        return 0;
+    }
+    return handle_indent(0, INDENT_KIND_UNKNOWN);
 }
 
 int lexer_peek_fresh_line(void) {
@@ -471,6 +540,7 @@ static int keyword_token(const char *lex) {
     if (!strcmp(lex, "and")) return KW_AND;
     if (!strcmp(lex, "or")) return KW_OR;
     if (!strcmp(lex, "not")) return KW_NOT;
+    if (!strcmp(lex, "is")) return KW_IS;
     return TOKEN_KEYWORD;
 }
 
@@ -584,6 +654,11 @@ void lexer_reset_for_parse(void) {
     peek_fresh_line = 0;
     fresh_line = 0;
     token_is_fresh = 0;
+    deferred_tok = 0;
+    lex_prev = 0;
+    lex_prev2 = 0;
+    lex_prev_line = 0;
+    saw_assign_this_line = 0;
     line_has_ws = 0;
     at_line_start = 1;
     paren_depth = 0;
@@ -611,12 +686,26 @@ int yylex(void) {
         }
     }
 
+    if (deferred_tok != 0) {
+        tok = deferred_tok;
+        yylval = deferred_yylval;
+        deferred_tok = 0;
+        return tok;
+    }
+
     tok = yyflexlex();
 
     if (parser_mode && tok != 0 && tok != TOKEN_NEWLINE && tok != TOKEN_COMMENT &&
         tok != TOKEN_INDENT && tok != TOKEN_DEDENT) {
+        if (lexer_multistmt_error(tok)) {
+            fprintf(stderr,
+                    "SYNTAX_ERROR: line=%d near='' message='multiples sentencias en la misma linea'\n",
+                    line_no);
+            syntax_error_seen = 1;
+        }
         token_is_fresh = fresh_line;
         fresh_line = 0;
+        lexer_note_token(tok);
     } else {
         token_is_fresh = 0;
     }

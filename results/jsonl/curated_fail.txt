@@ -1,1 +1,1 @@
-FAIL  idx= 93  triton_per_fused_add_clamp_copy_index_mean_minimum_mul_remainder_rsub_sub_5  |  SYNTAX_ERROR: line=47 near='' message='multiples sentencias en la misma linea'
+

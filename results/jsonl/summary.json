@@ -1,50 +1,19 @@
 {
   "curated": {
     "total": 100,
-    "pass": 99,
-    "fail": 1,
-    "pass_rate": 99.0,
-    "failures": [
-      {
-        "index": 93,
-        "function_name": "triton_per_fused_add_clamp_copy_index_mean_minimum_mul_remainder_rsub_sub_5",
-        "error": "SYNTAX_ERROR: line=47 near='' message='multiples sentencias en la misma linea'"
-      }
-    ]
+    "pass": 100,
+    "fail": 0,
+    "pass_rate": 100.0,
+    "failures": []
   },
   "adversarial": {
     "total": 100,
-    "pass": 96,
-    "fail": 4,
-    "pass_rate": 96.0,
-    "failures": [
-      {
-        "id": "invalid_062",
-        "expected_parse": false,
-        "got_parse_ok": true,
-        "error": ""
-      },
-      {
-        "id": "invalid_064",
-        "expected_parse": false,
-        "got_parse_ok": true,
-        "error": ""
-      },
-      {
-        "id": "invalid_065",
-        "expected_parse": false,
-        "got_parse_ok": true,
-        "error": ""
-      },
-      {
-        "id": "invalid_092",
-        "expected_parse": false,
-        "got_parse_ok": true,
-        "error": ""
-      }
-    ]
+    "pass": 100,
+    "fail": 0,
+    "pass_rate": 100.0,
+    "failures": []
   },
-  "timestamp": "2026-06-05T18:20:40Z",
+  "timestamp": "2026-06-05T18:28:34Z",
   "artifacts": {
     "report": "/Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/report.txt",
     "details": "/Users/usuario/Desktop/Analizador sintáctico/analizador-sintactico/results/jsonl/details.json",

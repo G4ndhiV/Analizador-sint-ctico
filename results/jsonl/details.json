@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-05T18:20:40Z",
+  "timestamp": "2026-06-05T18:28:34Z",
   "curated": [
     {
       "index": 0,
@@ -1030,10 +1030,10 @@
       "source_id": "hf:kernelbook",
       "num_lines": 81,
       "expected": "PARSE_OK",
-      "got_parse_ok": false,
-      "pass": false,
-      "exit_code": 1,
-      "error": "SYNTAX_ERROR: line=47 near='' message='multiples sentencias en la misma linea'"
+      "got_parse_ok": true,
+      "pass": true,
+      "exit_code": 0,
+      "error": ""
     },
     {
       "index": 94,
@@ -1342,7 +1342,7 @@
       "got_parse_ok": false,
       "pass": true,
       "exit_code": 1,
-      "error": "SYNTAX_ERROR: line=4 near='' message='syntax error, unexpected TOKEN_NEWLINE, expecting TOKEN_OPERATOR or TOKEN_DELIMITER or ':' or '[''",
+      "error": "SYNTAX_ERROR: line=4 near='' message='syntax error, unexpected TOKEN_NEWLINE'",
       "error_description": "Missing colon after if condition"
     },
     {
@@ -1353,7 +1353,7 @@
       "got_parse_ok": false,
       "pass": true,
       "exit_code": 1,
-      "error": "SYNTAX_ERROR: line=4 near='' message='syntax error, unexpected TOKEN_NEWLINE, expecting TOKEN_OPERATOR or TOKEN_DELIMITER or ':' or '[''",
+      "error": "SYNTAX_ERROR: line=4 near='' message='syntax error, unexpected TOKEN_NEWLINE'",
       "error_description": "Missing colon after for statement"
     },
     {
@@ -1364,7 +1364,7 @@
       "got_parse_ok": false,
       "pass": true,
       "exit_code": 1,
-      "error": "SYNTAX_ERROR: line=4 near='' message='syntax error, unexpected TOKEN_NEWLINE, expecting TOKEN_OPERATOR or TOKEN_DELIMITER or ':' or '[''",
+      "error": "SYNTAX_ERROR: line=4 near='' message='syntax error, unexpected TOKEN_NEWLINE'",
       "error_description": "Missing colon after while condition"
     },
     {
@@ -1551,7 +1551,7 @@
       "got_parse_ok": false,
       "pass": true,
       "exit_code": 1,
-      "error": "SYNTAX_ERROR: line=3 near='' message='multiples sentencias en la misma linea'",
+      "error": "SYNTAX_ERROR: line=3 near='' message='syntax error, unexpected TOKEN_ASSIGN, expecting KW_DEF'",
       "error_description": "Cannot assign to literal"
     },
     {
@@ -1562,7 +1562,7 @@
       "got_parse_ok": false,
       "pass": true,
       "exit_code": 1,
-      "error": "SYNTAX_ERROR: line=3 near='' message='multiples sentencias en la misma linea'",
+      "error": "SYNTAX_ERROR: line=3 near='' message='syntax error, unexpected TOKEN_ASSIGN, expecting KW_DEF'",
       "error_description": "Cannot assign to string literal"
     },
     {
@@ -1650,7 +1650,7 @@
       "got_parse_ok": false,
       "pass": true,
       "exit_code": 1,
-      "error": "SYNTAX_ERROR: line=3 near='' message='syntax error, unexpected KW_AND, expecting TOKEN_OPERATOR or TOKEN_DELIMITER or ':' or '[''",
+      "error": "SYNTAX_ERROR: line=3 near='' message='syntax error, unexpected KW_AND'",
       "error_description": "Dangling 'and' without right operand"
     },
     {
@@ -1661,7 +1661,7 @@
       "got_parse_ok": false,
       "pass": true,
       "exit_code": 1,
-      "error": "SYNTAX_ERROR: line=3 near='' message='syntax error, unexpected KW_OR, expecting TOKEN_OPERATOR or TOKEN_DELIMITER or ':' or '[''",
+      "error": "SYNTAX_ERROR: line=3 near='' message='syntax error, unexpected KW_OR'",
       "error_description": "Dangling 'or' without right operand"
     },
     {
@@ -1738,7 +1738,7 @@
       "got_parse_ok": false,
       "pass": true,
       "exit_code": 1,
-      "error": "SYNTAX_ERROR: line=3 near='' message='multiples sentencias en la misma linea'",
+      "error": "SYNTAX_ERROR: line=3 near='' message='syntax error, unexpected TOKEN_DEDENT'",
       "error_description": "Ternary expression missing 'else'"
     },
     {
@@ -1779,10 +1779,10 @@
       "category": "statement_errors",
       "subcategory": "double_pass",
       "expected_parse": false,
-      "got_parse_ok": true,
-      "pass": false,
-      "exit_code": 0,
-      "error": "",
+      "got_parse_ok": false,
+      "pass": true,
+      "exit_code": 1,
+      "error": "SYNTAX_ERROR: line=3 near='' message='multiples sentencias en la misma linea'",
       "error_description": "Double 'pass' on same line"
     },
     {
@@ -1801,10 +1801,10 @@
       "category": "statement_errors",
       "subcategory": "return_double_expr",
       "expected_parse": false,
-      "got_parse_ok": true,
-      "pass": false,
-      "exit_code": 0,
-      "error": "",
+      "got_parse_ok": false,
+      "pass": true,
+      "exit_code": 1,
+      "error": "SYNTAX_ERROR: line=3 near='' message='multiples sentencias en la misma linea'",
       "error_description": "Return with two expressions (missing comma or operator)"
     },
     {
@@ -1812,10 +1812,10 @@
       "category": "statement_errors",
       "subcategory": "pass_with_arg",
       "expected_parse": false,
-      "got_parse_ok": true,
-      "pass": false,
-      "exit_code": 0,
-      "error": "",
+      "got_parse_ok": false,
+      "pass": true,
+      "exit_code": 1,
+      "error": "SYNTAX_ERROR: line=3 near='' message='multiples sentencias en la misma linea'",
       "error_description": "'pass' does not take arguments"
     },
     {
@@ -1969,7 +1969,7 @@
       "got_parse_ok": false,
       "pass": true,
       "exit_code": 1,
-      "error": "SYNTAX_ERROR: line=3 near='' message='syntax error, unexpected TOKEN_IDENTIFIER, expecting TOKEN_OPERATOR or TOKEN_DELIMITER or ':' or '[''",
+      "error": "SYNTAX_ERROR: line=3 near='' message='syntax error, unexpected TOKEN_IDENTIFIER'",
       "error_description": "If with two expressions without operator"
     },
     {
@@ -2109,10 +2109,10 @@
       "category": "indentation_errors",
       "subcategory": "sudden_dedent",
       "expected_parse": false,
-      "got_parse_ok": true,
-      "pass": false,
-      "exit_code": 0,
-      "error": "",
+      "got_parse_ok": false,
+      "pass": true,
+      "exit_code": 1,
+      "error": "SYNTAX_ERROR: line=4 near='' message='syntax error, unexpected TOKEN_IDENTIFIER, expecting end of file'",
       "error_description": "Unexpected dedent to column 0"
     },
     {

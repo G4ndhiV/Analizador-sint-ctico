@@ -1,9 +1,9 @@
 {
   "total": 70,
-  "parse_ok": 68,
-  "parse_fail": 2,
+  "parse_ok": 58,
+  "parse_fail": 12,
   "lexical_fail": 0,
-  "pass_pct": 97.14,
+  "pass_pct": 82.86,
   "known_invalid_mutations": [
     "k_0040.tri",
     "k_0058.tri"
