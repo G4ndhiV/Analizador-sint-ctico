@@ -215,15 +215,15 @@
     \texttt{class}, \texttt{try/except}, \texttt{with}, \texttt{yield},
     \texttt{lambda}.
 
-    {\footnotesize
-    \begin{verbatim}
-program   -> opt_newlines top_block opt_newlines
-def_stmt  -> opt_decorator DEF ID '(' params ')' ':' suite
-suite     -> simple_stmt | INDENT block_body DEDENT
-expr      -> literal | ID ident_suffix | expr OP expr
-          | expr IF expr ELSE expr | expr '[' subscripts ']'
-call_expr -> ID member_chain '(' arg_list ')'   /* tl.load(...) */
-    \end{verbatim}}
+    \vspace{0.5em}
+    \noindent\textbf{Grammar excerpt (BNF):}\\[0.3em]
+    {\footnotesize\ttfamily\setlength{\parindent}{0pt}
+    program -> opt\_newlines top\_block opt\_newlines\\
+    def\_stmt -> opt\_decorator DEF ID '(' params ')' ':' suite\\
+    suite -> simple\_stmt | INDENT block\_body DEDENT\\
+    expr -> literal | ID ident\_suffix | expr OP expr\\
+    \hspace*{3ex}| expr IF expr ELSE expr | expr '[' subscripts ']'\\
+    call\_expr -> ID member\_chain '(' arg\_list ')' \quad /* tl.load(...) */\par}
 
   \end{block}
 
