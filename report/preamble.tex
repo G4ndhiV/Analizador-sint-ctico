@@ -25,7 +25,14 @@
   frame=single,
   numbers=left,
   numberstyle=\tiny,
-  language=C
+  language=C,
+  inputencoding=utf8,
+  extendedchars=true,
+  literate=
+    {á}{{\'{a}}}1 {é}{{\'{e}}}1 {í}{{\'{i}}}1 {ó}{{\'{o}}}1 {ú}{{\'{u}}}1
+    {Á}{{\'{A}}}1 {É}{{\'{E}}}1 {Í}{{\'{I}}}1 {Ó}{{\'{O}}}1 {Ú}{{\'{U}}}1
+    {ñ}{{\~{n}}}1 {Ñ}{{\~{N}}}1 {ü}{{\"u}}1
+    {...}{{\ldots}}3 {→}{{$\to$}}1 {←}{{$\leftarrow$}}1
 }
 \lstdefinelanguage{bnf}{
   morecomment=[l]{\%},

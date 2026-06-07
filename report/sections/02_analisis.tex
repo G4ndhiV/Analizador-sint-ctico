@@ -21,7 +21,8 @@
 \end{itemize}
 
 \subsection{CFG (resumen)}
-La gramática formal completa (\textbf{36 no terminales}, \textbf{105 alternativas} numeradas P-001\ldots P-105, inventario en Tabla~\ref{tab:inventario-nt} del Apéndice~\ref{ap:cfg-completa}) se documenta en el Listado~\ref{lst:cfg-completa} y el bloque yacc Listado~\ref{lst:parser-y-gramatica}. El siguiente extracto resume las construcciones principales para lectura rápida en el análisis.
+\label{sec:cfg_resumen}
+La gramática formal completa (\textbf{41 no terminales}, \textbf{105 alternativas} numeradas P-001\ldots P-105, inventario en Tabla~\ref{tab:inventario-nt} del Apéndice~\ref{ap:cfg-completa}) se documenta en el Listado~\ref{lst:cfg-completa} y el bloque yacc Listado~\ref{lst:parser-y-gramatica}. El siguiente extracto resume las construcciones principales para lectura rápida en el análisis.
 
 \begin{lstlisting}[caption={CFG resumida del lenguaje .tri (Triton kernel subset)}]
 program       -> opt_newlines top_block opt_newlines
@@ -62,32 +63,115 @@ arg           -> expr | ID '=' expr
 \end{lstlisting}
 
 \subsection{Pasos para obtener la gramática}
+La metodología de análisis sigue el modelo descrito en~[1] para la fase sintáctica, y la construcción de la CFG se basa en los principios del Capítulo~3 del compendio de la asignatura~[1], así como en los fundamentos teóricos de Aho~et~al.~[6].
+
 \begin{enumerate}
-  \item Inventario de tokens del reporte léxico (Cuadro~1).
-  \item Identificación de estructuras Triton en 70 kernels de referencia.
+  \item Inventario de tokens del reporte léxico (Cuadro~1); trazabilidad numérica preservada~[3].
+  \item Identificación de estructuras Triton en 70 kernels de referencia del benchmark TRITONHEAL~[7].
   \item Borrador de producciones para bloques indentados (\texttt{INDENT}/\texttt{DEDENT}).
-  \item Incorporación de expresiones, llamadas y subíndices tensoriales.
-  \item Resolución de ambigüedades con precedencias yacc y pruebas iterativas.
+  \item Incorporación de expresiones, llamadas y subíndices tensoriales propios del lenguaje Triton~[5].
+  \item Resolución de ambigüedades con precedencias yacc y pruebas iterativas contra suites JSONL.
 \end{enumerate}
 
 \subsection{Simplificaciones justificadas}
+\label{sec:simplificaciones}
+
+Las siguientes simplificaciones se aplicaron durante el diseño de la CFG para
+eliminar ambigüedades, reducir conflictos shift/reduce y mantener la gramática
+dentro de las capacidades LALR(1) de yacc/Bison.
+
+\paragraph{1.\ Producciones unitarias.}
+Una producción unitaria tiene la forma $A \rightarrow B$ donde $B$ es un único
+no-terminal. Una jerarquía clásica de precedencia de expresiones (\texttt{expr}
+$\rightarrow$ \texttt{or\_expr} $\rightarrow$ \texttt{and\_expr} $\rightarrow$
+\ldots $\rightarrow$ \texttt{primary}) introduce múltiples producciones unitarias
+que degradan el rendimiento y complican la lectura. Decisión de diseño: se
+colapsaron todos los niveles de expresión en un único no-terminal \texttt{expr},
+y la precedencia se delega a las directivas \texttt{\%left}/\texttt{\%nonassoc}/%
+\texttt{\%right} de yacc, que son más expresivas y directas.
+\textbf{Impacto}: eliminación de $\approx$6 no-terminales intermedios
+(\texttt{or\_expr}, \texttt{and\_expr}, \texttt{not\_expr}, \texttt{comp\_expr},
+\texttt{add\_expr}, \texttt{mul\_expr}) y sus producciones unitarias
+correspondientes.
+
+\paragraph{2.\ Producciones épsilon ($\varepsilon$).}
+Las producciones $A \rightarrow \varepsilon$ se conservan solo donde el lenguaje
+lo requiere semánticamente; en ningún caso se añadieron por conveniencia:
+
 \begin{table}[H]
 \centering
-\caption{Simplificaciones de la CFG.}
-\begin{tabular}{@{}p{3.2cm}p{8.5cm}@{}}
+\caption{Producciones épsilon en la CFG y su justificación.}
+\label{tab:epsilon}
+\begin{tabular}{@{}lp{9cm}@{}}
 \toprule
-Tipo & Decisión \\
+\textbf{No-terminal} & \textbf{Justificación de la producción vacía} \\
 \midrule
-Unitarias & Jerarquía de expresiones colapsada en \texttt{expr} con \texttt{\%left}. \\
-$\varepsilon$ & Solo en listas opcionales, \texttt{else} y líneas vacías iniciales. \\
-Símbolos inútiles & Sin \texttt{class}, \texttt{try}, \texttt{switch} (no usados en kernels). \\
-Indentación & \texttt{WS\_COUNT} $\rightarrow$ pila $\rightarrow$ \texttt{INDENT}/\texttt{DEDENT}. \\
-Comentarios & Patrón \texttt{\#[\^{})\textbackslash n]*} para no consumir \texttt{)} en la misma línea. \\
+\texttt{opt\_newlines}   & Las líneas en blanco entre declaraciones son opcionales en Python. \\
+\texttt{top\_block}      & Un archivo puede estar vacío (solo imports o vacío). \\
+\texttt{param\_list\_opt}& Una función puede tener cero parámetros: \texttt{def f():}. \\
+\texttt{block\_body}     & Un bloque indentado puede contener solo \texttt{pass}. \\
+\texttt{opt\_expr}       & Los extremos de un \textit{slice} son opcionales: \texttt{a[:n]}, \texttt{a[m:]}. \\
+\texttt{elif\_parts}     & El \texttt{if} puede no tener cláusulas \texttt{elif}. \\
+\texttt{else\_part}      & El \texttt{if} puede no tener cláusula \texttt{else}. \\
+\texttt{opt\_triton\_decorator} & El decorador \texttt{@triton.jit} es opcional. \\
+\texttt{opt\_as}         & La cláusula \texttt{as alias} en \texttt{import} es opcional. \\
+\texttt{arg\_list\_opt}  & Llamadas sin argumentos: \texttt{f()}. \\
+\texttt{ident\_suffix}   & Un identificador puede aparecer solo, sin sufijo. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Se evitó la ambigüedad inducida por $\varepsilon$ asegurando que en cada uso
+el conjunto \textsc{First} del no-terminal siguiente sea disjunto con el
+conjunto \textsc{Follow} del no-terminal con producción vacía, o que el
+conflicto sea resolvible por la directiva de precedencia correspondiente.
+
+\paragraph{3.\ Símbolos inútiles.}
+Un símbolo es \textit{inútil} si es inaccesible desde el símbolo inicial
+(\textit{unreachable}) o si no puede derivar ninguna cadena de terminales
+(\textit{unproductive}). Se identificaron y excluyeron las siguientes
+construcciones de Python que \emph{no} aparecen en los kernels Triton del
+subconjunto del curso:
+
+\begin{itemize}
+  \item \texttt{class} --- Triton no define clases; los kernels son funciones puras.
+  \item \texttt{try}/\texttt{except}/\texttt{finally} --- El manejo de excepciones
+    no está dentro del subconjunto Triton del reto.
+  \item \texttt{with} / \texttt{as} (gestor de contexto) --- Sin instancias en
+    los 70 kernels de referencia ni en las 100 muestras curadas.
+  \item \texttt{yield} / \texttt{lambda} --- Python avanzado; ningún kernel Triton
+    del reto los usa.
+  \item \texttt{switch} --- No existe en Python; solo aparece en la tabla de
+    palabras reservadas heredada del análisis léxico para compatibilidad.
+  \item \texttt{del} / \texttt{global} / \texttt{nonlocal} / \texttt{assert} --- Fuera del
+    subconjunto definido por los entregables del reto.
+\end{itemize}
+
+Incluir reglas para estos símbolos habría añadido producciones \textit{unreachable}
+en la CFG final. Su exclusión reduce el número de reglas y evita conflictos
+shift/reduce adicionales. Las palabras reservadas correspondientes siguen
+reconociéndose léxicamente (se mapean a \texttt{TOKEN\_KEYWORD}), pero al no
+existir una producción que las use, el parser las rechaza con \texttt{SYNTAX\_ERROR}
+si aparecen en el código de entrada, lo que es el comportamiento correcto.
+
+\begin{table}[H]
+\centering
+\caption{Resumen de simplificaciones aplicadas a la CFG.}
+\label{tab:simplificaciones}
+\begin{tabular}{@{}p{3.5cm}p{4.2cm}p{5cm}@{}}
+\toprule
+\textbf{Tipo} & \textbf{Decisión} & \textbf{Resultado} \\
+\midrule
+Producciones unitarias & Colapsar jerarquía en \texttt{expr} & $-6$ no-terminales; precedencias con \texttt{\%left} \\
+Producciones $\varepsilon$ & Solo donde requeridas semánticamente & 11 producciones vacías justificadas \\
+Símbolos inútiles & Excluir construcciones sin uso en Triton & $-9$ no-terminales potenciales \\
+Indentación & \texttt{WS\_COUNT} $\rightarrow$ pila $\rightarrow$ \texttt{INDENT/DEDENT} & Indentación Python como tokens sintéticos \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Modificaciones al analizador léxico}
+\label{sec:modificaciones_lexer}
 \begin{itemize}
   \item Integración con \texttt{y.tab.h}; \texttt{yylex()} retorna códigos de token.
   \item Tokens sintéticos 910/911 (no en Cuadro~1 original; documentados en este reporte).
@@ -100,7 +184,7 @@ Comentarios & Patrón \texttt{\#[\^{})\textbackslash n]*} para no consumir \text
 \subsection{Patrones léxicos: \texttt{BAD\_ID}}
 \begin{table}[H]
 \centering
-\caption{Caracteres invalidos en identificadores y patron Flex.}
+\caption{Caracteres inválidos en identificadores y patrón Flex.}
 \label{tab:bad-id}
 \begin{tabular}{@{}llp{7.2cm}@{}}
 \toprule

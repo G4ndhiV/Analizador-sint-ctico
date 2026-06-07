@@ -1,0 +1,83 @@
+\babel@toc {spanish}{}\relax 
+\contentsline {section}{\numberline {1}Introducción}{1}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Resumen}{1}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Notación}{1}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Justificación de herramientas}{1}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Trazabilidad a la fase léxica}{1}{subsection.1.4}%
+\contentsline {section}{\numberline {2}Análisis}{1}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Entregables del reto (Sección IV, documento de evaluación)}{1}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Requerimientos funcionales}{2}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}CFG (resumen)}{2}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Pasos para obtener la gramática}{3}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Simplificaciones justificadas}{3}{subsection.2.5}%
+\contentsline {paragraph}{1.\ Producciones unitarias.}{3}{section*.4}%
+\contentsline {paragraph}{2.\ Producciones épsilon ($\varepsilon $).}{3}{section*.5}%
+\contentsline {paragraph}{3.\ Símbolos inútiles.}{4}{section*.7}%
+\contentsline {subsection}{\numberline {2.6}Modificaciones al analizador léxico}{4}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}Patrones léxicos: \texttt {BAD\_ID}}{5}{subsection.2.7}%
+\contentsline {subsection}{\numberline {2.8}Trazabilidad token léxico $\rightarrow $ yacc}{5}{subsection.2.8}%
+\contentsline {section}{\numberline {3}Diseño}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Arquitectura del sistema}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Integración lex $\leftrightarrow $ yacc}{5}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Diseño de la especificación yacc}{6}{subsection.3.3}%
+\contentsline {paragraph}{Preámbulo C (\texttt {\%\{...\%\}}).}{6}{section*.12}%
+\contentsline {paragraph}{Sección de declaraciones.}{6}{section*.13}%
+\contentsline {paragraph}{Regla inicial.}{6}{section*.14}%
+\contentsline {paragraph}{Bloques indentados (\texttt {suite}).}{6}{section*.15}%
+\contentsline {paragraph}{Decorador \texttt {@triton.jit}.}{6}{section*.16}%
+\contentsline {paragraph}{Expresiones y llamadas Triton.}{6}{section*.17}%
+\contentsline {paragraph}{Validación de múltiples sentencias.}{6}{section*.18}%
+\contentsline {paragraph}{Mensajes de error.}{7}{section*.19}%
+\contentsline {subsection}{\numberline {3.4}Tabla de símbolos del parser (diseño)}{7}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Mensajes de error (diseño)}{7}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Trazabilidad diseño $\rightarrow $ análisis}{7}{subsection.3.6}%
+\contentsline {section}{\numberline {4}Implementación}{7}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Visión general}{7}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Estructura del proyecto}{7}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Compilación y ejecución}{8}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Código fuente completo y comentado}{8}{subsection.4.4}%
+\contentsline {subsubsection}{\numberline {4.4.1}Archivo: \texttt {parser/symtab.h}}{8}{subsubsection.4.4.1}%
+\contentsline {subsubsection}{\numberline {4.4.2}Archivo: \texttt {parser/symtab.c}}{10}{subsubsection.4.4.2}%
+\contentsline {subsubsection}{\numberline {4.4.3}Archivo: \texttt {src/driver.c}}{14}{subsubsection.4.4.3}%
+\contentsline {subsubsection}{\numberline {4.4.4}Archivo: \texttt {parser/parser.y}}{17}{subsubsection.4.4.4}%
+\contentsline {paragraph}{Trazabilidad CFG $\to $ código.}{17}{section*.22}%
+\contentsline {subsection}{\numberline {4.5}Ejemplo de salida del parser (Entregable~5)}{29}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}Mensajes de error (Entregable~4)}{30}{subsection.4.6}%
+\contentsline {subsection}{\numberline {4.7}Fragmento destacado: integración lex $\leftrightarrow $ yacc}{30}{subsection.4.7}%
+\contentsline {section}{\numberline {5}Verificación y Validación}{32}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Resultados experimentales}{32}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Resumen cuantitativo}{32}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Suites JSONL (\texttt {make jsonl-test})}{32}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Interpretación de los resultados}{33}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Gráfica de resultados (Figura~\ref {fig:benchmark70})}{33}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}Detalle de rechazos en el benchmark}{35}{subsection.5.6}%
+\contentsline {subsection}{\numberline {5.7}Modelo de pruebas}{35}{subsection.5.7}%
+\contentsline {subsection}{\numberline {5.8}Suite unitaria (\texttt {make test})}{35}{subsection.5.8}%
+\contentsline {subsection}{\numberline {5.9}Evidencia: salida exitosa (\texttt {ejemplo\_1.tri})}{35}{subsection.5.9}%
+\contentsline {subsection}{\numberline {5.10}Evidencia: error sintáctico (\texttt {def\_sin\_dos\_puntos.tri})}{36}{subsection.5.10}%
+\contentsline {subsection}{\numberline {5.11}Evidencia: error léxico \texttt {BAD\_ID} (I6)}{36}{subsection.5.11}%
+\contentsline {subsection}{\numberline {5.12}Reproducibilidad}{36}{subsection.5.12}%
+\contentsline {subsubsection}{\numberline {5.12.1}Prerrequisitos}{36}{subsubsection.5.12.1}%
+\contentsline {subsubsection}{\numberline {5.12.2}Pasos desde cero (PC nueva)}{37}{subsubsection.5.12.2}%
+\contentsline {subsubsection}{\numberline {5.12.3}Comando único (regeneración completa)}{37}{subsubsection.5.12.3}%
+\contentsline {subsubsection}{\numberline {5.12.4}Salidas verificables}{37}{subsubsection.5.12.4}%
+\contentsline {subsubsection}{\numberline {5.12.5}Consulta sin recompilar}{37}{subsubsection.5.12.5}%
+\contentsline {subsubsection}{\numberline {5.12.6}Notas por sistema operativo}{37}{subsubsection.5.12.6}%
+\contentsline {section}{\numberline {6}Plan de Trabajo}{38}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Distribución de responsabilidades}{38}{subsection.6.1}%
+\contentsline {section}{\numberline {A}Gramática libre de contexto completa}{38}{appendix.Alph1}%
+\contentsline {subsection}{\numberline {A.1}Convenciones y notación}{38}{subsection.Alph1.1}%
+\contentsline {subsection}{\numberline {A.2}Símbolo inicial y conteo}{39}{subsection.Alph1.2}%
+\contentsline {subsection}{\numberline {A.3}Terminales del analizador}{39}{subsection.Alph1.3}%
+\contentsline {subsubsection}{\numberline {A.3.1}Terminales que aparecen en producciones}{39}{subsubsection.Alph1.3.1}%
+\contentsline {subsubsection}{\numberline {A.3.2}Terminales declarados y no usados en reglas}{39}{subsubsection.Alph1.3.2}%
+\contentsline {subsection}{\numberline {A.4}Precedencia y asociatividad (yacc)}{40}{subsection.Alph1.4}%
+\contentsline {subsection}{\numberline {A.5}Inventario de no terminales (41)}{40}{subsection.Alph1.5}%
+\contentsline {subsection}{\numberline {A.6}Notas semánticas ligadas a la CFG (fuera de producciones)}{41}{subsection.Alph1.6}%
+\contentsline {subsection}{\numberline {A.7}Desglose detallado: no terminal \texttt {expr} (16 alternativas, P-065--080)}{41}{subsection.Alph1.7}%
+\contentsline {subsection}{\numberline {A.8}Desglose detallado: \texttt {subscript} (5 alternativas, P-085--089)}{42}{subsection.Alph1.8}%
+\contentsline {subsection}{\numberline {A.9}Desglose detallado: \texttt {block\_stmt} (2 alternativas, P-014--015)}{42}{subsection.Alph1.9}%
+\contentsline {subsection}{\numberline {A.10}Listado completo de producciones (P-001 a P-105)}{42}{subsection.Alph1.10}%
+\contentsline {subsection}{\numberline {A.11}Implementación yacc (referencia cruzada)}{45}{subsection.Alph1.11}%
+\contentsline {subsection}{\numberline {A.12}Trazabilidad y mantenimiento}{45}{subsection.Alph1.12}%
+\contentsline {section}{\numberline {B}Referencias}{45}{appendix.Alph2}%

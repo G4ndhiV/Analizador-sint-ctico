@@ -2,7 +2,7 @@
 % CFG COMPLETA - Analizador sintactico Triton (.tri) - Equipo 11
 % Fuente canonica de implementacion: parser/parser.y (reglas entre %% ... %%)
 % Simbolo inicial: program
-% No terminales: 36 | Producciones (alternativas): 105 | Ultima revision: 2026-06
+% No terminales: 41 | Producciones (alternativas): 105 | Ultima revision: 2026-06
 % Notacion: NT -> cuerpo   (una alternativa por linea con prefijo P-NNN)
 % epsilon = produccion vacia (/* empty */ en yacc)
 % =============================================================================

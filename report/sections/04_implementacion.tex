@@ -1,65 +1,219 @@
 \section{Implementación}
 
+\subsection{Visión general}
+
+La implementación del analizador sintáctico se compone de cuatro archivos fuente en C y dos archivos de especificación de herramientas (Flex y yacc/Bison), todos ellos completamente comentados conforme al estándar de documentación del curso.
+
+\begin{table}[H]
+\centering
+\caption{Archivos fuente del analizador sintáctico y su función.}
+\label{tab:archivos}
+\begin{tabular}{@{}llp{6.5cm}@{}}
+\toprule
+\textbf{Archivo} & \textbf{Herramienta} & \textbf{Función} \\
+\midrule
+\texttt{parser/parser.y} & yacc/Bison & CFG, acciones semánticas, gestión de errores \\
+\texttt{parser/symtab.c} & C & Implementación de la tabla de símbolos del parser \\
+\texttt{parser/symtab.h} & C & Interfaz (tipos y prototipos) de \texttt{symtab.c} \\
+\texttt{src/driver.c}    & C & Punto de entrada; modos \texttt{-t} y parser completo \\
+\texttt{include/tokens.h}& C & Constantes numéricas de tokens compartidas \\
+\texttt{lexer/lexico\_equipo\_11\_scanner.l} & Flex & Scanner; genera \texttt{INDENT}/\texttt{DEDENT} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Estructura del proyecto}
 \begin{verbatim}
 analizador-sintactico/
-  lexer/lexico_equipo_11_scanner.l
-  parser/parser.y, symtab.c, symtab.h
-  src/driver.c
-  build/triton_parser
-  tests/{valid,invalid}/  results/{parser,benchmark}/
-  figures/benchmark_parse_results.pdf
+  include/tokens.h             -- IDs de token documentados (Cuadro 1)
+  lexer/lexico_equipo_11_scanner.l  -- Scanner Flex con indentacion Python
+  lexer/lexer.h                -- API publica del scanner
+  parser/parser.y              -- CFG + acciones semanticas (yacc/Bison)
+  parser/symtab.c / symtab.h   -- Tabla de simbolos del parser
+  src/driver.c                 -- Driver: modos -t (lexer) y parser
+  build/triton_parser          -- Ejecutable final
+  tests/{valid,invalid}/       -- Casos de prueba del equipo
+  results/{parser,jsonl,benchmark}/  -- Resultados y logs
 \end{verbatim}
 
 \subsection{Compilación y ejecución}
-Instrucciones completas para una PC nueva (clonado, dependencias, salidas): Sección~\ref{sub:reproducibilidad} y \texttt{README.md} en GitHub.
 
 \begin{verbatim}
 git clone https://github.com/G4ndhiV/Analizador-sint-ctico.git
 cd Analizador-sint-ctico
-make check-deps    # opcional
-make build
-make test          # 12 casos unitarios
-make jsonl-test    # 200 casos JSONL (curated + adversarial)
-make benchmark     # 70 kernels en benchmark/kernels/
-make figures
-make pdf           # requiere tectonic o latexmk
-./build/triton_parser archivo.tri
-./build/triton_parser -t archivo.tri   # modo solo lexico
+make build               # compila triton_parser
+make test                # 12 casos unitarios
+make jsonl-test          # 200 casos JSONL (curated + adversarial)
+make benchmark           # 70 kernels benchmark/kernels/
+./build/triton_parser archivo.tri        # modo parser
+./build/triton_parser -t archivo.tri     # modo solo lexico
 \end{verbatim}
 
-\subsection{Fragmento: detección \texttt{BAD\_ID} (lexer)}
-Misma política que el repositorio léxico del equipo (\texttt{Analizador-lexico}): la regla \texttt{BAD\_ID} tiene precedencia sobre \texttt{ID} para no tokenizar por partes un nombre inválido.
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Código fuente completo y comentado}
 
-\lstinputlisting[language=C, firstline=64, lastline=68, caption={Definiciones Flex \texttt{BAD\_ID\_CHAR} y \texttt{BAD\_ID}.}]{../lexer/lexico_equipo_11_scanner.l}
+En esta sección se presenta el código fuente completo del analizador sintáctico.
+Cada archivo incluye:
+\begin{enumerate}
+  \item Cabecera de archivo con propósito, descripción y relación con otros módulos.
+  \item Comentario de cada función/sección explicando el \textit{qué}, \textit{por qué} e invariantes no evidentes.
+  \item Comentarios inline en la lógica no trivial (manejo de indentación, desambiguación de operadores, diferimiento de tokens).
+\end{enumerate}
 
-\lstinputlisting[language=C, firstline=138, lastline=144, caption={Acción léxica: error por identificador con caracteres invalidos.}]{../lexer/lexico_equipo_11_scanner.l}
+% ─── parser/symtab.h ────────────────────────────────────────────────────────
+\subsubsection{Archivo: \texttt{parser/symtab.h}}
 
-\subsection{Fragmento: integración de indentación (lexer)}
-\lstinputlisting[language=C, firstline=364, lastline=420, caption={Detección de múltiples sentencias y \texttt{bol\_dedent\_token} (extracto).}]{../lexer/lexico_equipo_11_scanner.l}
+Este archivo define los cuatro tipos de entrada de la tabla de símbolos
+(\texttt{FuncEntry}, \texttt{ParamEntry}, \texttt{VarEntry}, \texttt{ImportEntry})
+y declara la API que las acciones semánticas de \texttt{parser.y} invocan
+durante el análisis. La trazabilidad directa entre los entregables del análisis
+(funciones, parámetros, variables, imports) y los \textit{structs} de este archivo
+satisface el Entregable~2 del reto.
 
-\subsection{Fragmento: reglas principales (yacc)}
-\lstinputlisting[language=C, firstline=70, lastline=145, caption={Producciones \texttt{program}, \texttt{stmt}, \texttt{def\_stmt} (extracto).}]{../parser/parser.y}
+\lstinputlisting[language=C, caption={\texttt{parser/symtab.h}: tipos e interfaz de la tabla de símbolos.}]{../parser/symtab.h}
 
-\subsection{Fragmento: tabla de símbolos}
-\lstinputlisting[language=C, firstline=1, lastline=75, caption={Estructuras e inserción en symtab (extracto).}]{../parser/symtab.c}
+% ─── parser/symtab.c ────────────────────────────────────────────────────────
+\subsubsection{Archivo: \texttt{parser/symtab.c}}
 
-\subsection{Fragmento: manejo de errores}
-\lstinputlisting[language=C, firstline=383, lastline=410, caption={Validación de fin de sentencia y \texttt{yyerror}.}]{../parser/parser.y}
+\texttt{symtab.c} implementa las cuatro tablas estáticas de la tabla de símbolos
+del parser. Cada función de inserción es invocada desde una acción semántica
+específica de \texttt{parser.y}:
 
-\subsection{Ejemplo de salida del parser (entregable 5)}
-Al analizar \texttt{triton\_kernel\_min.tri}:
+\begin{itemize}
+  \item \texttt{symtab\_add\_import()} $\leftarrow$ acción de \texttt{import\_stmt}.
+  \item \texttt{symtab\_add\_function()} $\leftarrow$ acción de \texttt{def\_stmt} (tras el~\texttt{':'}).
+  \item \texttt{symtab\_add\_param()} $\leftarrow$ acción de \texttt{param}.
+  \item \texttt{symtab\_add\_variable()} $\leftarrow$ acción de \texttt{assign\_stmt} e \texttt{ident\_stmt}.
+\end{itemize}
+
+La función \texttt{copy\_str()} garantiza que ningún campo de los \textit{structs}
+desborde su tamaño fijo. La detección de duplicados en \texttt{symtab\_add\_variable()}
+asegura que la misma variable no aparezca dos veces en la misma tabla de símbolos.
+
+\lstinputlisting[language=C, caption={\texttt{parser/symtab.c}: implementación de la tabla de símbolos.}]{../parser/symtab.c}
+
+% ─── src/driver.c ───────────────────────────────────────────────────────────
+\subsubsection{Archivo: \texttt{src/driver.c}}
+
+El \textit{driver} es el punto de entrada del ejecutable \texttt{triton\_parser}.
+Implementa dos flujos de ejecución:
+
+\begin{description}
+  \item[Modo parser (por defecto)] Activa \texttt{parser\_mode = 1}, llama a
+    \texttt{lexer\_reset\_for\_parse()} y \texttt{symtab\_reset()}, invoca
+    \texttt{yyparse()} y verifica la ausencia de tokens sobrantes.
+    Si todo es correcto imprime \texttt{PARSE\_OK} seguido de las dos tablas
+    de símbolos (parser y léxica).
+  \item[Modo solo-léxico (\texttt{-t})] Activa \texttt{lexer\_debug\_mode = 1}
+    y consume tokens con un bucle \texttt{while(yylex())}, reproduciendo la
+    salida del reporte léxico (casos TC-01\,--\,TC-04).
+\end{description}
+
+\begin{description}
+  \item[Código de salida 0] Análisis exitoso.
+  \item[Código de salida 1] Error sintáctico (\texttt{syntax\_error\_seen}).
+  \item[Código de salida 2] Error léxico (\texttt{lexical\_error\_seen}).
+\end{description}
+
+\lstinputlisting[language=C, caption={\texttt{src/driver.c}: punto de entrada del analizador sintáctico.}]{../src/driver.c}
+
+% ─── parser/parser.y ────────────────────────────────────────────────────────
+\subsubsection{Archivo: \texttt{parser/parser.y}}
+
+Este es el núcleo del analizador sintáctico. El archivo se divide en cuatro
+secciones yacc:
+
+\begin{enumerate}
+  \item \textbf{Preámbulo C} (\texttt{\%\{...\%\}}): variables globales de
+    contexto (\texttt{current\_func}, \texttt{param\_pos\_counter},
+    \texttt{triton\_decorator\_pending}), funciones auxiliares de recuperación de
+    lexemas (\texttt{id\_text}, \texttt{int\_text}, \ldots) y prototipo de
+    \texttt{validate\_stmt\_line\_end}.
+
+  \item \textbf{Declaraciones} (\texttt{\%union}, \texttt{\%token}, \texttt{\%type},
+    precedencias): el \texttt{\%union} define los dos tipos semánticos
+    (\texttt{int i} para índices, \texttt{char *s} para lexemas); los tokens
+    numéricos coinciden con el Cuadro~1 del reporte léxico; las directivas
+    \texttt{\%left}/\texttt{\%nonassoc}/\texttt{\%right} resuelven conflictos
+    de precedencia y el \textit{dangling-else}.
+
+  \item \textbf{Reglas de la CFG} (\texttt{\%\%...}): 41 no-terminales y 105
+    alternativas (P-001\,--\,P-105) documentadas en el Apéndice~\ref{ap:cfg-completa}.
+    Las acciones semánticas insertan entradas en \texttt{symtab} y validan
+    restricciones que la gramática por sí sola no puede expresar
+    (\texttt{delim\_is}, \texttt{validate\_stmt\_line\_end}).
+
+  \item \textbf{Funciones C} (\texttt{\%\%} final): \texttt{validate\_stmt\_line\_end}
+    usa \texttt{yypeek()} para detectar múltiples sentencias en la misma línea;
+    \texttt{yyerror} formatea los mensajes de error sintáctico en el formato
+    estándar del curso.
+\end{enumerate}
+
+\paragraph{Trazabilidad CFG $\to$ código.}
+Cada producción de la CFG resumida en la Sección~\ref{sec:cfg_resumen}
+se implementa directamente en una regla de \texttt{parser.y}. La
+correspondencia es uno-a-uno: no existe código de manejo sintáctico fuera
+de este archivo (excepto la generación de INDENT/DEDENT en el lexer,
+documentada en la Sección~\ref{sec:modificaciones_lexer}).
+
+\lstinputlisting[language=C, caption={\texttt{parser/parser.y}: especificación yacc completa del analizador sintáctico.}, label={lst:parser-y-gramatica}]{../parser/parser.y}
+
+% ─── Ejemplo de salida ──────────────────────────────────────────────────────
+\subsection{Ejemplo de salida del parser (Entregable~5)}
+
+Al analizar un kernel mínimo \texttt{triton\_kernel\_min.tri}:
 \begin{verbatim}
-PARSE_OK: archivo '...' sintacticamente valido.
+PARSE_OK: archivo 'triton_kernel_min.tri' sintacticamente valido.
 
 === PARSER SYMBOL TABLE ===
 --- IMPORTS ---
-1  line=2  module=triton  alias=-
+1  line=1  module=triton         alias=-
 2  line=2  module=triton.language  alias=tl
 --- FUNCTIONS ---
 1  line=5  name=add_kernel  arity=5  triton_jit=1
 --- PARAMETERS ---
-...
+1  line=5  func=add_kernel  param=x_ptr    pos=0  annot=-
+2  line=5  func=add_kernel  param=y_ptr    pos=1  annot=-
+3  line=5  func=add_kernel  param=output   pos=2  annot=-
+4  line=5  func=add_kernel  param=n_elements  pos=3  annot=-
+5  line=5  func=add_kernel  param=BLOCK_SIZE  pos=4  annot=-
+--- VARIABLES ---
+1  line=7  scope=add_kernel  name=pid
+--- PARSER SYMBOL TABLE ---
 === SYMBOL TABLE: IDENTIFIERS ===
+1    triton
+2    tl
 ...
 \end{verbatim}
+
+\subsection{Mensajes de error (Entregable~4)}
+
+Los mensajes de error están estandarizados en dos formatos, generados
+respectivamente por el scanner y por \texttt{yyerror()}:
+
+\begin{verbatim}
+LEXICAL_ERROR:  token_id=<999> line=<n> lexeme="<lex>" (<descripcion>)
+SYNTAX_ERROR:   line=<n> near='' message='<descripcion>'
+\end{verbatim}
+
+Ejemplos reales de la suite de pruebas:
+\begin{verbatim}
+LEXICAL_ERROR: token_id=<999> line=3 lexeme="x$" (identificador con caracteres invalidos)
+SYNTAX_ERROR: line=5 near='' message='syntax error, unexpected TOKEN_NEWLINE'
+SYNTAX_ERROR: line=3 near='' message='multiples sentencias en la misma linea'
+SYNTAX_ERROR: line=4 near='indent' message='Indentacion inconsistente'
+\end{verbatim}
+
+\subsection{Fragmento destacado: integración lex $\leftrightarrow$ yacc}
+
+El mecanismo de indentación Python requiere que el scanner inyecte tokens
+\texttt{INDENT} y \texttt{DEDENT} que el parser consume como cualquier otro
+terminal. La función \texttt{bol\_dedent\_token()} en el scanner detecta
+cuando un identificador aparece en columna~0 y emite el \texttt{DEDENT}
+primero, difiriendo el token real:
+
+\lstinputlisting[language=C, firstline=364, lastline=420, caption={Detección de DEDENT en columna 0 y diferimiento de token (\texttt{lexer/lexico\_equipo\_11\_scanner.l}).}]{../lexer/lexico_equipo_11_scanner.l}
+
+El parser consume estos tokens sintéticos en la regla \texttt{suite}:
+
+\lstinputlisting[language=C, firstline=295, lastline=325, caption={Regla \texttt{suite} en \texttt{parser/parser.y}: uso de INDENT/DEDENT.}]{../parser/parser.y}

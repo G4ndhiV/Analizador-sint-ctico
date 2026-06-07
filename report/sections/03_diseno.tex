@@ -21,13 +21,77 @@ El diseño sigue el modelo en capas del compilador: \textbf{entrada} $\rightarro
 \end{enumerate}
 
 \subsection{Diseño de la especificación yacc}
+\label{sec:diseno_yacc}
+
+La especificación \texttt{parser.y} sigue la estructura de tres secciones de
+yacc/Bison: preámbulo C, declaraciones y reglas. El diseño de cada sección se
+describe a continuación.
+
+\paragraph{Preámbulo C (\texttt{\%\{...\%\}}).}
+Contiene las variables de contexto compartidas entre reglas (\texttt{current\_func},
+\texttt{param\_pos\_counter}, \texttt{triton\_decorator\_pending}), las funciones
+auxiliares de recuperación de lexemas (\texttt{id\_text}, \texttt{int\_text},
+\texttt{float\_text}, \texttt{str\_text}) y el prototipo de
+\texttt{validate\_stmt\_line\_end}. Este diseño centraliza el estado del parser
+en variables estáticas de módulo, evitando el uso de un árbol sintáctico en
+memoria.
+
+\paragraph{Sección de declaraciones.}
 \begin{itemize}
-  \item \textbf{Regla inicial}: \texttt{program} con bloque superior y newlines opcionales.
-  \item \textbf{Bloques}: \texttt{suite} usa \texttt{INDENT}/\texttt{DEDENT} para cuerpos de función y ramas \texttt{if}.
-  \item \textbf{Triton}: \texttt{opt\_triton\_decorator} reconoce \texttt{@triton.jit} en líneas separadas del \texttt{def}.
-  \item \textbf{Expresiones}: \texttt{member\_chain} para \texttt{tl.load}; \texttt{subscript\_list} para indexación tensorial.
-  \item \textbf{Precedencia}: \texttt{\%left} para operadores; \texttt{\%nonassoc KW\_ELSE} para \textit{dangling else}.
+  \item \textbf{\texttt{\%union}}: define los dos tipos semánticos (\texttt{int i}
+    para índices en tablas léxicas; \texttt{char *s} para lexemas de operadores
+    y delimitadores).
+  \item \textbf{\texttt{\%token}}: los IDs numéricos coinciden exactamente con el
+    Cuadro~1 del reporte léxico para garantizar trazabilidad.
+  \item \textbf{Precedencias}: de menor a mayor prioridad: \texttt{TOKEN\_NEWLINE}
+    $<$ \texttt{KW\_OR} $<$ \texttt{KW\_AND} $<$ \texttt{KW\_NOT} $<$
+    \texttt{TOKEN\_OPERATOR} $<$ \texttt{KW\_ELIF} $<$ \texttt{KW\_ELSE} $<$
+    \texttt{KW\_IF} (expresión ternaria). Resuelven los conflictos
+    shift/reduce de operadores y del \textit{dangling-else}.
 \end{itemize}
+
+\paragraph{Regla inicial.}
+\texttt{program} acepta newlines opcionales al inicio y al final, y un
+\texttt{top\_block} que contiene imports y definiciones de función. Esta
+estructura refleja el nivel 0 de indentación de Python.
+
+\paragraph{Bloques indentados (\texttt{suite}).}
+El no-terminal \texttt{suite} unifica el cuerpo de funciones, ramas
+\texttt{if}/\texttt{elif}/\texttt{else}, bucles \texttt{while}/\texttt{for}:
+puede ser una sentencia simple (en la misma línea del~\texttt{:}) o un bloque
+delimitado por \texttt{INDENT}\ldots\texttt{DEDENT} emitidos por el scanner.
+Esto traslada la complejidad de la indentación Python al lexer, manteniendo
+la gramática libre de contexto.
+
+\paragraph{Decorador \texttt{@triton.jit}.}
+La regla \texttt{triton\_decorator} verifica que la forma sea exactamente
+\texttt{@triton.jit}; otros decoradores se aceptan léxicamente pero el flag
+\texttt{triton\_decorator\_pending} no se activa. El campo
+\texttt{is\_triton\_jit} de \texttt{FuncEntry} registra esta información
+para la tabla de símbolos.
+
+\paragraph{Expresiones y llamadas Triton.}
+\begin{itemize}
+  \item \texttt{member\_chain}: modela accesos de atributo encadenados como
+    \texttt{tl.load}, \texttt{tl.store}, \texttt{tl.math.exp}.
+  \item \texttt{subscript\_list} con \texttt{subscript}: soporta las formas de
+    indexación tensorial \texttt{a[i]}, \texttt{a[None, :]}, \texttt{a[lo:hi:step]}.
+  \item \texttt{arg}: incluye argumentos con nombre (\texttt{mask=m, dtype=tl.float16})
+    como los usa \texttt{tl.load}/\texttt{tl.store}.
+\end{itemize}
+
+\paragraph{Validación de múltiples sentencias.}
+La función \texttt{validate\_stmt\_line\_end()} usa \texttt{yypeek()} para
+inspeccionar el token siguiente sin consumirlo; si ese token puede iniciar una
+sentencia en la misma línea, emite \texttt{SYNTAX\_ERROR}. Esta lógica
+complementa la detección léxica en \texttt{lexer\_multistmt\_error()} para
+cubrir todos los patrones del adversarial-100.
+
+\paragraph{Mensajes de error.}
+\texttt{yyerror()} genera mensajes en el formato estándar del curso:
+\texttt{SYNTAX\_ERROR: line=\textit{n} near='' message='\textit{msg}'}. El
+campo \texttt{parse.error verbose} de Bison proporciona adicionalmente el token
+inesperado y los tokens esperados.
 
 \subsection{Tabla de símbolos del parser (diseño)}
 \begin{table}[H]

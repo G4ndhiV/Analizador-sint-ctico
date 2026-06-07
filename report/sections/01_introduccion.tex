@@ -14,7 +14,7 @@ El entregable incluye: (i) gramática documentada (Apéndice~\ref{ap:cfg-complet
 \end{itemize}
 
 \subsection{Justificación de herramientas}
-Se utiliza \textbf{C} con \textbf{Flex} y \textbf{yacc}, conforme a las restricciones del curso. No se emplean librerías CFG de alto nivel ni \texttt{ast} de Python para el parser formal.
+Se utiliza \textbf{C} con \textbf{Flex} y \textbf{yacc/Bison}, conforme a las restricciones del curso~[1]. No se emplean librerías CFG de alto nivel ni \texttt{ast} de Python para el parser formal. El modelo de desarrollo sigue el proceso de análisis, diseño, implementación y verificación definido en el IEEE-830~[4], con los cinco entregables del Entregable~B como unidades de documentación.
 
 \subsection{Trazabilidad a la fase léxica}
 Los IDs de token se preservan en \texttt{\%token} de \texttt{parser.y} (p.\,ej.\ \texttt{TOKEN\_IDENTIFIER = 100}). El archivo \texttt{lexico\_equipo\_11\_scanner.l} es la base del scanner integrado; el modo \texttt{-t} reproduce la salida del reporte léxico (TC-01--TC-04).
