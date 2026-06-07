@@ -1,3 +1,0 @@
-\babel@toc {spanish}{}\relax 
-\contentsline {figure}{\numberline {1}{\ignorespaces Pipeline del analizador sintáctico.}}{5}{figure.caption.11}%
-\contentsline {figure}{\numberline {2}{\ignorespaces \textbf {Resultados del analizador sintáctico (benchmark 70 kernels).} Verde = \texttt {PARSE\_OK}; naranja/rojo = rechazo (mutaciones \texttt {k\_0040}/\texttt {k\_0058} o código en columna~0). La validación JSONL 200/200 no se grafica aquí; ver Tabla~\ref {tab:jsonl}. }}{34}{figure.caption.25}%

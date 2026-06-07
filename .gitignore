@@ -12,6 +12,13 @@ report/*.out
 report/*.fls
 report/*.fdb_latexmk
 report/main.pdf
+report/main.toc
+report/main.lof
+report/main.lot
+
+# Fragmentos .tex generados desde results/*/summary.json (capture_outputs.sh / export_report_data.py)
+report/data/*.tex
+results/parser/summary_*.tex
 
 # Logs regenerables (se conservan summary.json)
 results/benchmark/*.log
