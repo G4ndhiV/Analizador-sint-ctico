@@ -1,0 +1,340 @@
+% ============================================================
+% ACA-2026 — Validated Triton Grammar (Team 11)
+% Poster: syntax-analysis phase reframed as the constraint
+% backbone for grammar-constrained GPU kernel generation.
+% Convention: Spanish to communicate, English to code/report.
+% ============================================================
+
+\documentclass[final]{beamer}
+
+% ====================
+% Packages
+% ====================
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{luainputenc}
+\usepackage{lmodern}
+\usepackage[size=custom, width=122,height=91, scale=1.2]{beamerposter}
+\usetheme{gemini}
+\usecolortheme{msu}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.14}
+\usepackage{anyfontsize}
+
+% ====================
+% Lengths
+% ====================
+\newlength{\sepwidth}
+\newlength{\colwidth}
+\setlength{\sepwidth}{0.025\paperwidth}
+\setlength{\colwidth}{0.3\paperwidth}
+
+\newcommand{\separatorcolumn}{\begin{column}{\sepwidth}\end{column}}
+
+% ====================
+% Title
+% ====================
+\title{A Validated Triton Grammar: an unambiguous CFG + yacc parser as the constraint backbone for grammar-constrained kernel generation}
+
+\author{Cristóbal Camarena Hernández \and Josué Galindo Gutiérrez \and Gandhi Emmanuel Valdez Huerta \and Diego Alberto Estrada López}
+
+\institute[shortinst]{Tecnológico de Monterrey — TC3002B (ACA-2026)}
+
+% ====================
+% Footer
+% ====================
+\footercontent{
+  \href{https://github.com/G4ndhiV/Analizador-sint-ctico}{Repo: github.com/G4ndhiV/Analizador-sint-ctico} \hfill
+  ACA-2026 — Partner Session \hfill
+  \href{mailto:a01642653@tec.mx}{a01642653@tec.mx}}
+
+% ====================
+% Logo
+% ====================
+\logoright{\includegraphics[height=8cm]{logos/logo.png}}
+
+% ====================
+% Body
+% ====================
+\begin{document}
+
+\begin{frame}[t]
+\begin{columns}[t]
+\separatorcolumn
+
+% ============================================================
+% COLUMN 1 — Motivation, problem, background, differentiator
+% ============================================================
+\begin{column}{\colwidth}
+
+  \begin{block}{Abstract}
+
+    Grammar-constrained decoding can only ever be as good as the grammar it
+    is given: an ambiguous or incomplete Triton grammar lets invalid kernels
+    slip through and rejects valid ones. Our team's contribution is that
+    grammar itself. We design a formal, unambiguous context-free grammar for
+    the Triton GPU-kernel subset (\textbf{41 non-terminals, 105 productions})
+    and implement it as a Flex + yacc/Bison parser with Python-style
+    indentation and symbol-table tracking. We validate it on two
+    100-kernel JSONL suites (real \texttt{curated} kernels and deliberate
+    \texttt{adversarial} cases) and a 70-kernel TRITONHEAL benchmark.
+    The grammar reaches \textbf{200/200 (100\%)} on JSONL with
+    \textbf{zero false positives and zero false negatives}, and accepts
+    \textbf{100\% (58/58)} of all syntactically valid benchmark kernels.
+    This validated grammar is the reusable constraint backbone that any
+    grammar-constrained Triton generator (e.g. XGrammar) requires.
+
+  \end{block}
+
+  \begin{block}{1. Problem statement}
+
+    \begin{itemize}
+      \item \textbf{Pain point:} GPU-kernel authors and LLM-based generators
+        produce syntactically invalid Triton constantly; without a correct
+        grammar there is no automatic way to accept the good and reject the bad.
+      \item \textbf{Current baseline:} ad-hoc or partial grammars (or none)
+        leak invalid constructs and cannot model Python indentation, so
+        constrained decoding has nothing solid to constrain against.
+      \item \textbf{Our research question:} can a hand-built, LALR(1)-clean
+        Triton CFG accept \emph{every} valid kernel and reject \emph{every}
+        invalid one, with no ambiguity?
+    \end{itemize}
+
+  \end{block}
+
+  \begin{block}{2. Background}
+
+    A grammar-constrained generator restricts an LLM so that it can only emit
+    strings inside a target language; that language must be specified as a
+    formal grammar. We supply exactly that for Triton, built and validated
+    with the same compiler-construction techniques used in TC3002B.
+
+    \begin{itemize}
+      \item \textbf{Formal grammars:} a CFG in BNF describes valid token
+        sequences via productions $A \rightarrow \alpha$; it is the right
+        abstraction level to constrain a Triton token stream.
+      \item \textbf{Constrained decoding:} engines such as XGrammar mask an
+        LLM's logits at each step to a grammar, guaranteeing syntactic
+        validity — only as strong as the grammar provided.
+      \item \textbf{Triton DSL:} a Python-embedded GPU language; far more
+        tractable to grammar-model than raw CUDA, yet still needs indentation
+        and tensor-subscript handling.
+    \end{itemize}
+
+  \end{block}
+
+  \begin{alertblock}{3. Our differentiator}
+
+    \textbf{One-line differentiator:} while other teams focus on the LLM and
+    the decoder, we deliver the missing piece both depend on — a
+    \emph{formally validated, unambiguous Triton CFG} (41 NT / 105
+    productions) verified at \textbf{200/200 with zero false
+    positives/negatives}.
+
+    \begin{itemize}
+      \item \textbf{C1 (unique to us).} A documented, LALR(1)-clean CFG with
+        explicit grammar simplifications justified one by one — unit
+        productions collapsed into \texttt{expr} via yacc precedences,
+        11 justified $\varepsilon$-productions, and 9 useless symbols removed.
+      \item \textbf{C2.} Dual empirical validation: 100 real Triton kernels
+        \emph{and} 100 adversarial cases, passing 200/200 — a measurable
+        accept/reject guarantee no generation-only poster can show.
+      \item \textbf{C3.} A working Flex+yacc parser that models Python
+        indentation as synthetic \texttt{INDENT}/\texttt{DEDENT} tokens and
+        maintains symbol tables (imports, functions, params, variables).
+    \end{itemize}
+
+  \end{alertblock}
+
+\end{column}
+
+\separatorcolumn
+
+% ============================================================
+% COLUMN 2 — Architecture, grammar design, pipeline
+% ============================================================
+\begin{column}{\colwidth}
+
+  \begin{block}{4. System architecture}
+
+    \begin{figure}
+      \centering
+      \begin{tikzpicture}[
+          node distance=1.2cm and 1.0cm,
+          pbox/.style={draw, rounded corners, minimum height=2.2cm,
+                       text width=6.2cm, align=center, font=\small, thick},
+          pbio/.style={pbox, fill=blue!8},
+          pbproc/.style={pbox, fill=green!10},
+          pbout/.style={pbox, fill=orange!12},
+          arr/.style={-{Stealth[length=4mm]}, very thick}]
+        \node[pbio]   (src)   {\textbf{.tri source}\\Triton kernel};
+        \node[pbproc] (lex)   [right=of src]  {\textbf{Flex scanner}\\tokens + INDENT/DEDENT};
+        \node[pbproc] (yacc)  [right=of lex]  {\textbf{yacc/Bison parser}\\CFG (41 NT, 105 prod.)};
+        \node[pbproc] (sem)   [below=of yacc] {\textbf{Semantic actions}\\symbol tables};
+        \node[pbout]  (ok)    [left=of sem]   {\textbf{PARSE\_OK}\\+ symbol tables};
+        \node[pbout]  (err)   [left=of ok]    {\textbf{SYNTAX/LEXICAL\_ERROR}\\line + message};
+        \draw[arr] (src)  -- (lex);
+        \draw[arr] (lex)  -- (yacc);
+        \draw[arr] (yacc) -- (sem);
+        \draw[arr] (sem)  -- (ok);
+        \draw[arr] (sem)  -- (err);
+      \end{tikzpicture}
+      \caption{End-to-end pipeline: from a \texttt{.tri} kernel to a validated
+      parse plus symbol tables, or a precise syntax/lexical error.}
+    \end{figure}
+
+    Source flows left to right: the Flex scanner emits the token stream and
+    injects synthetic \texttt{INDENT}/\texttt{DEDENT} tokens to encode Python
+    indentation; the yacc/Bison parser recognises the token stream against the
+    CFG; semantic actions populate the symbol tables; the driver reports
+    \texttt{PARSE\_OK} with the tables or a precise error.
+
+  \end{block}
+
+  \begin{block}{5. Grammar design}
+
+    The CFG is layered so that it can later be exported (BNF $\rightarrow$
+    EBNF) for a constrained decoder:
+
+    \begin{itemize}
+      \item \textbf{L1 — Skeleton:} imports, optional \texttt{@triton.jit}
+        decorator, \texttt{def} signature, indented \texttt{suite}.
+      \item \textbf{L2 — Declarations:} parameters with annotations
+        (\texttt{id : type}), annotated assignments (\texttt{id : type = expr}).
+      \item \textbf{L3 — Expressions:} literals, operators, \texttt{tl.*}
+        member chains, calls, tensor subscripts/slices (\texttt{[:, None]}),
+        named arguments (\texttt{mask=}, \texttt{dtype=}).
+      \item \textbf{L4 — Control flow:} \texttt{if/elif/else},
+        \texttt{while}, \texttt{for/in}, \texttt{return}, \texttt{pass}.
+    \end{itemize}
+
+    Intentionally excluded as useless symbols (absent from the Triton subset):
+    \texttt{class}, \texttt{try/except}, \texttt{with}, \texttt{yield},
+    \texttt{lambda}.
+
+    {\footnotesize
+    \begin{verbatim}
+program   -> opt_newlines top_block opt_newlines
+def_stmt  -> opt_decorator DEF ID '(' params ')' ':' suite
+suite     -> simple_stmt | INDENT block_body DEDENT
+expr      -> literal | ID ident_suffix | expr OP expr
+          | expr IF expr ELSE expr | expr '[' subscripts ']'
+call_expr -> ID member_chain '(' arg_list ')'   /* tl.load(...) */
+    \end{verbatim}}
+
+  \end{block}
+
+  \begin{block}{6. Parsing \& validation pipeline}
+
+    \begin{enumerate}
+      \item \textbf{Lexical scan:} Flex tokenises the kernel and converts
+        \texttt{WS\_COUNT} into \texttt{INDENT}/\texttt{DEDENT}; invalid
+        identifiers (\texttt{BAD\_ID}) raise \texttt{LEXICAL\_ERROR}.
+      \item \textbf{Syntactic parse:} a yacc/Bison LALR(1) parser applies the
+        105 productions; \texttt{\%left}/\texttt{\%nonassoc}/\texttt{\%right}
+        precedences resolve operator and dangling-\texttt{else} conflicts.
+      \item \textbf{Semantic actions:} insert imports, functions, parameters
+        and variables into the symbol tables during reduction.
+      \item \textbf{Validation loop:} each case is compared against its
+        \texttt{should\_parse} label across the JSONL suites; Python
+        \texttt{ast.parse} is used as an oracle to confirm rejections.
+    \end{enumerate}
+
+  \end{block}
+
+\end{column}
+
+\separatorcolumn
+
+% ============================================================
+% COLUMN 3 — Setup, results, discussion, references
+% ============================================================
+\begin{column}{\colwidth}
+
+  \begin{exampleblock}{7. Experimental setup}
+
+    \begin{itemize}
+      \item \textbf{Benchmark:} two JSONL suites — \texttt{curated\_100}
+        (100 valid kernels) and \texttt{adversarial\_100} (100 invalid
+        cases) — plus the 70-kernel TRITONHEAL bank. \emph{Note: our project
+        targets validation, not TritonBench-T generation.}
+      \item \textbf{Hardware:} commodity CPU (parsing needs no GPU); built on
+        macOS and Linux.
+      \item \textbf{Software:} C (\texttt{cc}), Flex, Bison; Python 3 +
+        Matplotlib for figures.
+      \item \textbf{Repetitions:} the parser is deterministic, so results are
+        exact and fully reproducible (\texttt{make test},
+        \texttt{make jsonl-test}, \texttt{make benchmark}).
+      \item \textbf{Evaluation metric:} accept/reject correctness reported as
+        a confusion-style count — false positives = 0, false negatives = 0
+        — rather than a stochastic significance test.
+    \end{itemize}
+
+  \end{exampleblock}
+
+  \begin{block}{8. Results}
+
+    \textbf{Headline result:} \textbf{200/200 (100\%)} on JSONL validation
+    with \textbf{zero false positives and zero false negatives}, and
+    \textbf{100\% (58/58)} acceptance of all syntactically valid TRITONHEAL
+    kernels — the strongest correctness guarantee on the grammar itself.
+
+    \begin{table}
+      \centering
+      \begin{tabular}{l r r l}
+        \toprule
+        \textbf{Suite} & \textbf{Correct} & \textbf{Total} & \textbf{Rate} \\
+        \midrule
+        \texttt{curated\_100} (valid)        & 100 & 100 & 100\% \\
+        \texttt{adversarial\_100} (invalid)  & 100 & 100 & 100\% \\
+        Unit suite (regression)              & 12  & 12  & 100\% \\
+        TRITONHEAL — valid kernels           & 58  & 58  & 100\% \\
+        TRITONHEAL — overall PARSE\_OK       & 58  & 70  & 82.9\% \\
+        \bottomrule
+      \end{tabular}
+      \caption{Validation results. The 12 TRITONHEAL non-parses are correct
+      rejections (2 seeded syntax mutations + 10 column-0 statements outside
+      \texttt{def}); \texttt{ast.parse} also rejects them.}
+    \end{table}
+
+    \begin{figure}
+      \centering
+      \includegraphics[width=0.85\textwidth]{figures/benchmark_parse_results.pdf}
+      \caption{Per-kernel TRITONHEAL benchmark: green = \texttt{PARSE\_OK},
+      orange = expected rejection (mutations \texttt{k\_0040}, \texttt{k\_0058}).}
+    \end{figure}
+
+  \end{block}
+
+  \begin{block}{9. Discussion \& limitations}
+
+    \begin{itemize}
+      \item \textbf{Wins:} zero false positives/negatives over 200 JSONL
+        cases; a robust Python-indentation model via INDENT/DEDENT tokens.
+      \item \textbf{Failures / limits:} the grammar covers the course Triton
+        subset only (no \texttt{class}/\texttt{try}/\texttt{with}/\texttt{lambda});
+        the parser validates but does not yet drive a constrained decoder.
+      \item \textbf{Next step:} export the validated CFG to EBNF and plug it
+        into an XGrammar-constrained LLM, connecting this grammar to the
+        broader ACA-2026 generation challenge.
+    \end{itemize}
+
+  \end{block}
+
+  \begin{block}{References}
+
+    \nocite{*}
+    \footnotesize{\bibliographystyle{plain}\bibliography{poster}}
+
+  \end{block}
+
+\end{column}
+
+\separatorcolumn
+\end{columns}
+\end{frame}
+
+\end{document}
