@@ -234,7 +234,8 @@
         \texttt{WS\_COUNT} into \texttt{INDENT}/\texttt{DEDENT}; invalid
         identifiers (\texttt{BAD\_ID}) raise \texttt{LEXICAL\_ERROR}.
       \item \textbf{Syntactic parse:} a yacc/Bison LALR(1) parser applies the
-        105 productions; \texttt{\%left}/\texttt{\%nonassoc}/\texttt{\%right}
+        105 productions in a single linear-time $O(n)$ pass over the token
+        stream; \texttt{\%left}/\texttt{\%nonassoc}/\texttt{\%right}
         precedences resolve operator and dangling-\texttt{else} conflicts.
       \item \textbf{Semantic actions:} insert imports, functions, parameters
         and variables into the symbol tables during reduction.
@@ -313,7 +314,8 @@
 
     \begin{itemize}
       \item \textbf{Wins:} zero false positives/negatives over 200 JSONL
-        cases; a robust Python-indentation model via INDENT/DEDENT tokens.
+        cases; an efficient single-pass, linear-time $O(n)$ LALR(1) parser;
+        a robust Python-indentation model via INDENT/DEDENT tokens.
       \item \textbf{Failures / limits:} the grammar covers the course Triton
         subset only (no \texttt{class}/\texttt{try}/\texttt{with}/\texttt{lambda});
         the parser validates but does not yet drive a constrained decoder.
