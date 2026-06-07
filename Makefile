@@ -68,4 +68,7 @@ pdf: test figures
 clean:
 	rm -rf $(BUILD)
 	$(MAKE) -C report clean 2>/dev/null || true
-	rm -rf results/parser deliverables/*.pdf
+	rm -f results/parser/*.log results/benchmark/*.log
+	rm -f results/parser/summary_*.tex report/data/*.tex
+	rm -f report/main.toc report/main.lof report/main.lot
+	@echo "clean: artefactos regenerables eliminados (se conservan summary.json y deliverables/)."
