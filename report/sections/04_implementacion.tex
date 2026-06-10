@@ -204,16 +204,103 @@ SYNTAX_ERROR: line=3 near='' message='multiples sentencias en la misma linea'
 SYNTAX_ERROR: line=4 near='indent' message='Indentacion inconsistente'
 \end{verbatim}
 
-\subsection{Fragmento destacado: integración lex $\leftrightarrow$ yacc}
+\subsection{Explicación completa de las secciones de Flex (integración con yacc)}
+\label{sec:flex_integracion}
 
-El mecanismo de indentación Python requiere que el scanner inyecte tokens
-\texttt{INDENT} y \texttt{DEDENT} que el parser consume como cualquier otro
-terminal. La función \texttt{bol\_dedent\_token()} en el scanner detecta
-cuando un identificador aparece en columna~0 y emite el \texttt{DEDENT}
-primero, difiriendo el token real:
+En lenguajes con indentación significativa como Python/Triton, el analizador
+sintáctico no puede operar de forma aislada: depende de que el analizador
+léxico realice un trabajo \emph{sintético} avanzado. Al trasladar la gestión
+de la pila de indentación (\texttt{INDENT}/\texttt{DEDENT}) y el control de
+múltiples sentencias en una línea al archivo \texttt{.l}, el código de Flex
+pasa a formar parte del diseño sintáctico. Esta subsección explica las
+\textbf{tres secciones} del archivo
+\texttt{lexer/lexico\_equipo\_11\_scanner.l} con foco en su integración con
+\texttt{parser.y}; el scanner completo es la versión integrada del analizador
+léxico del Equipo~11~[3].
 
-\lstinputlisting[language=C, firstline=364, lastline=420, caption={Detección de DEDENT en columna 0 y diferimiento de token (\texttt{lexer/lexico\_equipo\_11\_scanner.l}).}]{../lexer/lexico_equipo_11_scanner.l}
+\subsubsection{Sección 1 --- Declaraciones de Flex (\texttt{\%\{...\%\}} y definiciones)}
 
-El parser consume estos tokens sintéticos en la regla \texttt{suite}:
+El preámbulo \texttt{\%\{...\%\}} establece el puente con Bison:
 
-\lstinputlisting[language=C, firstline=295, lastline=325, caption={Regla \texttt{suite} en \texttt{parser/parser.y}: uso de INDENT/DEDENT.}]{../parser/parser.y}
+\begin{itemize}
+  \item \texttt{\#include "y.tab.h"} hereda los \textbf{códigos de token} de
+    Bison (\texttt{TOKEN\_IDENTIFIER}, \texttt{KW\_DEF}, \texttt{TOKEN\_INDENT},
+    \texttt{TOKEN\_DEDENT}, \ldots) y el tipo \texttt{YYSTYPE} del
+    \texttt{\%union}; \texttt{\#include "tokens.h"} aporta los IDs numéricos
+    del Cuadro~1.
+  \item \textbf{Estado compartido con el parser} declarado como variables de
+    módulo: \texttt{parser\_mode}, \texttt{lexical\_error\_seen},
+    \texttt{extern int syntax\_error\_seen}, la pila
+    \texttt{indent\_stack[256]} con \texttt{indent\_depth}, la cola
+    \texttt{pending\_tokens[]}, los contadores \texttt{paren\_depth}/%
+    \texttt{bracket\_depth} (para no emitir \texttt{DEDENT} dentro de
+    paréntesis) y el historial \texttt{lex\_prev}, \texttt{lex\_prev2},
+    \texttt{lex\_prev\_line}, \texttt{saw\_assign\_this\_line} usado para
+    detectar múltiples sentencias.
+  \item \texttt{extern YYSTYPE yylval} es el canal por el que el scanner
+    entrega valores semánticos (índices de tabla en \texttt{yylval.i},
+    lexemas en \texttt{yylval.s}) al parser.
+  \item \textbf{Mecanismo clave de integración}: la macro
+    \texttt{YY\_DECL} renombra la función generada por Flex a
+    \texttt{yyflexlex()}, y un \texttt{yylex()} escrito a mano la envuelve
+    para \textbf{inyectar primero} los \texttt{INDENT}/\texttt{DEDENT}
+    pendientes antes de devolver el token real a Bison.
+\end{itemize}
+
+\lstinputlisting[language=C, firstline=90, lastline=96, caption={Declaraciones de integración: \texttt{yylval} compartido y el truco \texttt{YY\_DECL} (\texttt{yyflexlex} envuelto por \texttt{yylex}).}]{../lexer/lexico_equipo_11_scanner.l}
+
+Las definiciones de patrones relevantes para el parser son \texttt{ID}
+(\texttt{[a-zA-Z\_][a-zA-Z0-9\_]*}), \texttt{BAD\_ID} (identificadores con
+caracteres prohibidos), \texttt{WS\_COUNT} (\texttt{\textasciicircum[ \textbackslash t]+},
+indentación al inicio de línea) y \texttt{NEWLINE} (\texttt{\textbackslash n+}).
+
+\subsubsection{Sección 2 --- Reglas y patrones (\texttt{\%\% ... \%\%})}
+
+Cada regla, en \texttt{parser\_mode}, fija \texttt{yylval} y ejecuta
+\texttt{return TOKEN\_*}, entregando el token a \texttt{yyparse()}. Tres
+reglas impactan directamente al análisis sintáctico:
+
+\begin{itemize}
+  \item \textbf{\texttt{WS\_COUNT}} (inicio de línea): calcula el ancho de
+    indentación con \texttt{indent\_width()} y \texttt{indent\_line\_kind()} y
+    llama a \texttt{handle\_indent()}, que compara contra la cima de la pila
+    y emite \texttt{TOKEN\_INDENT} (sangría mayor) o uno o varios
+    \texttt{TOKEN\_DEDENT} (sangría menor) que el parser consume en la regla
+    \texttt{suite}.
+  \item \textbf{\texttt{BAD\_ID}} (declarada \emph{antes} que \texttt{ID}
+    para tener prioridad en Flex): emite \texttt{LEXICAL\_ERROR} (999) sin
+    fragmentar el lexema, marca \texttt{lexical\_error\_seen} y \textbf{frena}
+    el análisis (código de salida~2, sin \texttt{PARSE\_OK}).
+  \item \textbf{\texttt{NEWLINE}} devuelve \texttt{TOKEN\_NEWLINE}, terminador
+    de sentencia que el parser usa en \texttt{top\_line} y \texttt{block\_stmt}.
+\end{itemize}
+
+\lstinputlisting[language=C, firstline=229, lastline=236, caption={Regla \texttt{BAD\_ID}: error léxico atómico con prioridad sobre \texttt{ID}.}]{../lexer/lexico_equipo_11_scanner.l}
+
+El parser consume los tokens sintéticos de indentación en la regla
+\texttt{suite}:
+
+\lstinputlisting[language=C, firstline=295, lastline=325, caption={Regla \texttt{suite} en \texttt{parser/parser.y}: consumo de INDENT/DEDENT.}]{../parser/parser.y}
+
+\subsubsection{Sección 3 --- Código C auxiliar (\texttt{\%\%} final)}
+
+Tras el segundo \texttt{\%\%} se definen las funciones que permiten al scanner
+asistir al parser:
+
+\begin{itemize}
+  \item \texttt{bol\_dedent\_token()}: cuando un token inicia en columna~0,
+    con la pila de indentación activa y sin paréntesis/corchetes abiertos,
+    emite el \texttt{DEDENT} de cierre de bloque antes del token real.
+  \item \texttt{defer\_token(tok)}: guarda el token real (y su
+    \texttt{yylval}) para emitirlo \emph{después} del \texttt{INDENT}/%
+    \texttt{DEDENT} inyectado; soporta el diferimiento de un token.
+  \item \texttt{lexer\_multistmt\_error(tok)} y
+    \texttt{lexer\_note\_token(tok)}: registran el historial de tokens
+    (omitiendo \texttt{NEWLINE}/\texttt{INDENT}/\texttt{DEDENT}) y detectan
+    patrones de \textbf{múltiples sentencias en una línea}
+    (\texttt{pass pass}, \texttt{return 5 6}, \texttt{x = 5 y = 6}),
+    señalando el error que complementa a \texttt{validate\_stmt\_line\_end}
+    del parser.
+\end{itemize}
+
+\lstinputlisting[language=C, firstline=362, lastline=409, caption={Funciones auxiliares del scanner que asisten al parser: \texttt{defer\_token}, \texttt{lexer\_multistmt\_error}, \texttt{lexer\_note\_token} y \texttt{bol\_dedent\_token} (\texttt{lexer/lexico\_equipo\_11\_scanner.l}).}]{../lexer/lexico_equipo_11_scanner.l}
